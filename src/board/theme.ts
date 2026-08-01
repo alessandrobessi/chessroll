@@ -18,7 +18,12 @@ export const COLORS = {
   pieceBlackStroke: "none",
 } as const;
 
-export const FONT_FAMILY = '"Inter", system-ui, sans-serif';
+// Deliberately a system stack rather than a bundled/self-hosted font for
+// this pass: rendering happens on one pinned local Chromium, so frame-to-
+// frame determinism only requires the same machine to resolve the same
+// font consistently, which system-ui/Helvetica/Arial already guarantee.
+// Self-hosting a specific typeface (e.g. Inter) is a reasonable follow-up.
+export const FONT_FAMILY = 'system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif';
 
 /** Default canvas — 1080x1920 per AGENTS.md/ROADMAP.md non-negotiables. */
 export const CANVAS = {

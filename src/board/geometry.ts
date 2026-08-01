@@ -1,5 +1,6 @@
 import type { Square } from "chess.js";
 import type { Side } from "../chess/types.js";
+import { CANVAS } from "./theme.js";
 
 export interface BoardGeometry {
   x: number;
@@ -73,4 +74,22 @@ export function squareColor(square: Square): "light" | "dark" {
   const file = fileIndex(square);
   const rank = rankIndex(square);
   return (file + rank) % 2 === 0 ? "dark" : "light";
+}
+
+/**
+ * Default vertical-composition board placement (BLUEPRINT.md §17): centered
+ * horizontally, leaving room above for title/prompt and below for
+ * countdown/evaluation/move label. Board size/position are visual defaults
+ * pending sign-off once real frames render, same as the color tokens.
+ */
+const DEFAULT_BOARD_SIZE = 940;
+const DEFAULT_BOARD_Y = 560;
+
+export function defaultBoardGeometry(orientation: Side): BoardGeometry {
+  return createBoardGeometry({
+    x: (CANVAS.width - DEFAULT_BOARD_SIZE) / 2,
+    y: DEFAULT_BOARD_Y,
+    size: DEFAULT_BOARD_SIZE,
+    orientation,
+  });
 }

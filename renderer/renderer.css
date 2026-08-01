@@ -1,0 +1,111 @@
+/*
+ * Design tokens here must stay in sync with src/board/theme.ts — CSS can't
+ * import TS constants directly, and generating CSS from theme.ts is more
+ * machinery than this slice needs.
+ *
+ * Deterministic rendering (BLUEPRINT.md §8): no transition, animation, or
+ * @keyframes anywhere in this file. Animation progress is computed purely
+ * from `t` in src/board/render.ts, never from CSS.
+ */
+
+:root {
+  --color-background: #f6f3ec;
+  --color-primary: #171717;
+  --color-accent: #6b1f2a;
+  --color-secondary: #6b6b68;
+  --font-family: system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 1080px;
+  height: 1920px;
+  background: var(--color-background);
+  overflow: hidden;
+  font-family: var(--font-family);
+}
+
+#stage {
+  position: relative;
+  width: 1080px;
+  height: 1920px;
+}
+
+#board-root {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+}
+
+#overlay-root {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  pointer-events: none;
+}
+
+.title,
+.subtitle,
+.prompt,
+.countdown,
+.evaluation,
+.move-label {
+  position: absolute;
+  left: 0;
+  width: 1080px;
+  text-align: center;
+  color: var(--color-primary);
+}
+
+.title {
+  top: 100px;
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.subtitle,
+.prompt {
+  top: 220px;
+  font-size: 36px;
+  font-weight: 500;
+  color: var(--color-secondary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.countdown {
+  top: 1560px;
+  font-size: 140px;
+  font-weight: 800;
+  color: var(--color-accent);
+}
+
+.evaluation {
+  top: 1560px;
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.move-label {
+  top: 1720px;
+  font-size: 44px;
+  font-weight: 600;
+}
+
+.title--emphasis,
+.move-label--emphasis {
+  color: var(--color-accent);
+}
