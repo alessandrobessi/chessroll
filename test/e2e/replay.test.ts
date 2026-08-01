@@ -115,7 +115,7 @@ describe("Gate: chessroll test/fixtures/replay-game.pgn --template replay", () =
       const title0 = await session.page.locator("#overlay-root .title").textContent();
       expect(title0).toBe("A. Rowan (2100) vs B. Voss (2050)");
       const subtitle0 = await session.page.locator("#overlay-root .subtitle").textContent();
-      expect(subtitle0).toBe("Chessroll Fixture Open");
+      expect(subtitle0).toBe("Chessroll Fixture Open, 2024");
 
       // Result never appears before the final (outro) segment.
       await renderAtTime(timeline.duration - 3.5);

@@ -20,10 +20,18 @@ export function formatPlayer(
   return elo !== undefined ? `${label} (${elo})` : label;
 }
 
+/** PGN dates are "YYYY.MM.DD", with "?" in place of any unknown component — extract a real year, if any. */
+function extractYear(date: string | undefined): string | undefined {
+  const year = date?.split(".")[0];
+  return year && /^\d{4}$/.test(year) ? year : undefined;
+}
+
 export function headerFor(metadata: GameMetadata): { title: string; subtitle?: string } {
   const white = formatPlayer(metadata.white, metadata.whiteElo, "White");
   const black = formatPlayer(metadata.black, metadata.blackElo, "Black");
-  const subtitle = metadata.event && metadata.event !== "?" ? metadata.event : undefined;
+  const event = metadata.event && metadata.event !== "?" ? metadata.event : undefined;
+  const year = extractYear(metadata.date);
+  const subtitle = [event, year].filter((part) => part !== undefined).join(", ") || undefined;
   return { title: `${white} vs ${black}`, subtitle };
 }
 

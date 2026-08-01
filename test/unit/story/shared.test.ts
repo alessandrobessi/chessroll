@@ -45,6 +45,23 @@ describe("headerFor", () => {
     expect(headerFor({ event: "World Championship" }).subtitle).toBe("World Championship");
     expect(headerFor({ event: "?" }).subtitle).toBeUndefined();
   });
+
+  it("appends the year (extracted from PGN's YYYY.MM.DD date) to the event", () => {
+    expect(headerFor({ event: "World Championship", date: "2024.03.15" }).subtitle).toBe(
+      "World Championship, 2024",
+    );
+  });
+
+  it("shows just the year when there's no event, and just the event when the date is unknown", () => {
+    expect(headerFor({ date: "2024.03.15" }).subtitle).toBe("2024");
+    expect(headerFor({ event: "World Championship", date: "????.??.??" }).subtitle).toBe(
+      "World Championship",
+    );
+  });
+
+  it("omits subtitle entirely when neither a real event nor a real date is present", () => {
+    expect(headerFor({ date: "????.??.??" }).subtitle).toBeUndefined();
+  });
 });
 
 describe("moveNumberLabel", () => {
