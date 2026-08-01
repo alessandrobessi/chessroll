@@ -9,6 +9,9 @@ export interface MoveAnimation {
   capturedPiece?: Piece;
   /** Differs from `to` only for en passant. */
   capturedSquare?: Square;
+  /** Animation window, in seconds, on the scene timeline. */
+  start: number;
+  end: number;
   promotion?: PieceType;
   secondaryMove?: {
     from: Square;
@@ -31,8 +34,11 @@ function opposite(side: Side): Side {
   return side === "white" ? "black" : "white";
 }
 
-/** Converts a normalized chess Ply into a board-domain animation descriptor. */
-export function toMoveAnimation(ply: Ply): MoveAnimation {
+/**
+ * Converts a normalized chess Ply into a board-domain animation descriptor
+ * covering the timeline window [start, end).
+ */
+export function toMoveAnimation(ply: Ply, window: { start: number; end: number }): MoveAnimation {
   const piece: Piece = { type: pieceTypeFromSymbol(ply.piece), color: ply.side };
   const capturedPiece: Piece | undefined = ply.captured
     ? { type: pieceTypeFromSymbol(ply.captured), color: opposite(ply.side) }
@@ -51,6 +57,8 @@ export function toMoveAnimation(ply: Ply): MoveAnimation {
     piece,
     capturedPiece,
     capturedSquare: ply.capturedSquare,
+    start: window.start,
+    end: window.end,
     promotion: ply.promotion ? pieceTypeFromSymbol(ply.promotion) : undefined,
     secondaryMove,
   };

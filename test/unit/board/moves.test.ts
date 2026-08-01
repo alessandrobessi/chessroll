@@ -13,7 +13,7 @@ describe("toMoveAnimation", () => {
   it("carries piece/capture info for a plain move", () => {
     const game = loadPgn(fixture("simple.pgn"));
     const firstMove = game.plies[0]!; // 1. e4
-    const anim = toMoveAnimation(firstMove);
+    const anim = toMoveAnimation(firstMove, { start: 0, end: 1 });
     expect(anim.from).toBe("e2");
     expect(anim.to).toBe("e4");
     expect(anim.piece).toEqual({ type: "pawn", color: "white" });
@@ -24,7 +24,7 @@ describe("toMoveAnimation", () => {
   it("attaches a secondaryMove for kingside castling", () => {
     const game = loadPgn(fixture("castle-kingside.pgn"));
     const castlePly = game.plies.find((p) => p.flags.castle)!;
-    const anim = toMoveAnimation(castlePly);
+    const anim = toMoveAnimation(castlePly, { start: 0, end: 1 });
     expect(anim.from).toBe("e1");
     expect(anim.to).toBe("g1");
     expect(anim.secondaryMove).toEqual({
@@ -37,7 +37,7 @@ describe("toMoveAnimation", () => {
   it("attaches a secondaryMove for queenside castling", () => {
     const game = loadPgn(fixture("castle-queenside.pgn"));
     const castlePly = game.plies.find((p) => p.flags.castle)!;
-    const anim = toMoveAnimation(castlePly);
+    const anim = toMoveAnimation(castlePly, { start: 0, end: 1 });
     expect(anim.from).toBe("e1");
     expect(anim.to).toBe("c1");
     expect(anim.secondaryMove).toEqual({
@@ -49,7 +49,7 @@ describe("toMoveAnimation", () => {
 
   it("sets promotion piece type", () => {
     const game = loadPgn(fixture("promotion.pgn"));
-    const anim = toMoveAnimation(game.plies[0]!);
+    const anim = toMoveAnimation(game.plies[0]!, { start: 0, end: 1 });
     expect(anim.promotion).toBe("queen");
     expect(anim.piece.type).toBe("pawn");
   });
@@ -61,7 +61,7 @@ describe("toMoveAnimation", () => {
     applyUciMove(chess, "e4e5", 2);
     applyUciMove(chess, "d7d5", 3);
     const ep = applyUciMove(chess, "e5d6", 4);
-    const anim = toMoveAnimation(ep);
+    const anim = toMoveAnimation(ep, { start: 0, end: 1 });
     expect(anim.to).toBe("d6");
     expect(anim.capturedSquare).toBe("d5");
     expect(anim.capturedPiece).toEqual({ type: "pawn", color: "black" });
