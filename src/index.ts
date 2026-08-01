@@ -8,6 +8,7 @@ import type { Side } from "./chess/types.js";
 import { analyzeGame } from "./engine/analysis.js";
 import { buildPuzzleStory } from "./story/puzzle.js";
 import { buildBlunderStory, selectBlunder } from "./story/blunder.js";
+import { buildBrilliantStory, selectBrilliantMove } from "./story/brilliant.js";
 import type { SceneTimeline } from "./scene/types.js";
 import { findExecutable } from "./utils/process.js";
 import { createTempDir } from "./utils/temp.js";
@@ -75,7 +76,33 @@ async function buildTimeline(
         orientation,
       });
     }
+    case "brilliant": {
+      const analyses = await analyzeGame(engine, options.game, {
+        depth: options.depth,
+        nodes: options.nodes,
+        cache,
+        useCache: options.cache,
+      });
+      const candidate = selectBrilliantMove(options.game, analyses, {
+        moveOverride: options.moveOverride,
+      });
+      const orientation = options.orientation === "auto" ? undefined : options.orientation;
+      return buildBrilliantStory(options.game, candidate, {
+        countdownSeconds: options.countdownSeconds,
+        showEval: options.showEval,
+        orientation,
+      });
+    }
   }
+}
+
+/**
+ * The brilliant detector needs MultiPV >= 2 to measure the gap between the
+ * played move and the runner-up alternative — bump it before the engine
+ * even starts (MultiPV is a UCI setoption applied once at startup).
+ */
+function effectiveMultiPv(options: RenderOptions): number {
+  return options.template === "brilliant" ? Math.max(2, options.multiPv) : options.multiPv;
 }
 
 /** Orchestrates chess -> engine -> story -> scene -> video. */
@@ -90,7 +117,7 @@ export async function renderVideo(options: RenderOptions): Promise<RenderResult>
     binaryPath: stockfishPath,
     threads: options.threads,
     hashMb: options.hashMb,
-    multiPv: options.multiPv,
+    multiPv: effectiveMultiPv(options),
   });
 
   let timelineDuration: number;

@@ -26,3 +26,26 @@ export function formatEvaluation(score: EngineScore): string {
   const sign = pawns >= 0 ? "+" : "";
   return `${sign}${pawns.toFixed(1)}`;
 }
+
+/**
+ * Mate scores are never treated as ordinary centipawn values for DISPLAY
+ * (see formatEvaluation above) — but detectors (blunder, brilliant) need
+ * to rank/threshold cp and mate swings on one internal scale. This constant
+ * exists only for that ranking arithmetic and must never reach
+ * formatEvaluation() or any other display path.
+ */
+const MATE_COMPARABLE_MAGNITUDE = 100_000;
+
+/**
+ * Converts a White-perspective EngineScore into "how good is this for
+ * `mover`", on a single scale where mate scores always dominate any
+ * realistic cp swing (a mate is at least as significant as any material
+ * swing, regardless of "distance" heuristics that don't apply to forced
+ * mates). Shared by src/story/blunder.ts and src/story/brilliant.ts.
+ */
+export function moverComparableValue(score: EngineScore, mover: Side): number {
+  const sign = mover === "white" ? 1 : -1;
+  const value = score.value * sign;
+  if (score.type === "cp") return value;
+  return value >= 0 ? MATE_COMPARABLE_MAGNITUDE - value : -MATE_COMPARABLE_MAGNITUDE - value;
+}

@@ -2,8 +2,8 @@ import { Chess } from "chess.js";
 import { toMoveAnimation } from "../board/moves.js";
 import { applyUciMove } from "../chess/game.js";
 import type { ChessGame, Ply, Side } from "../chess/types.js";
-import type { EngineScore, PositionAnalysis } from "../engine/analysis.js";
-import { formatEvaluation } from "../engine/normalize.js";
+import type { PositionAnalysis } from "../engine/analysis.js";
+import { formatEvaluation, moverComparableValue } from "../engine/normalize.js";
 import { createTimeline, phase } from "../scene/timeline.js";
 import type {
   HighlightElement,
@@ -24,21 +24,6 @@ const DEFAULT_LEAD_IN_PLIES = 4;
 
 const DEFAULT_MIN_LOSS_CP = 300;
 const DEFAULT_MAX_ALREADY_LOST_CP = 700;
-/**
- * Mate scores are never treated as ordinary centipawn values (AGENTS.md) —
- * this constant exists only to give mate an internal ranking magnitude
- * that always dominates any realistic cp swing, so blunder candidates can
- * be sorted/thresholded on one scale. It never reaches formatEvaluation()
- * or any other display path.
- */
-const MATE_COMPARABLE_MAGNITUDE = 100_000;
-
-function moverComparableValue(score: EngineScore, mover: Side): number {
-  const sign = mover === "white" ? 1 : -1;
-  const value = score.value * sign;
-  if (score.type === "cp") return value;
-  return value >= 0 ? MATE_COMPARABLE_MAGNITUDE - value : -MATE_COMPARABLE_MAGNITUDE - value;
-}
 
 export interface BlunderCandidate {
   /** 0-based index into game.plies. */

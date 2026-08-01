@@ -7,9 +7,9 @@ import { CliArgumentError, InputNotFoundError } from "../utils/errors.js";
 import { defaultOutputPath } from "../utils/paths.js";
 import { DEFAULTS } from "./defaults.js";
 
-export type TemplateName = "puzzle" | "blunder";
+export type TemplateName = "puzzle" | "blunder" | "brilliant";
 
-const IMPLEMENTED_TEMPLATES: readonly TemplateName[] = ["puzzle", "blunder"];
+const IMPLEMENTED_TEMPLATES: readonly TemplateName[] = ["puzzle", "blunder", "brilliant"];
 
 export interface CliFlags {
   input?: string;
@@ -70,7 +70,14 @@ export interface BlunderRenderOptions extends CommonRenderOptions {
   moveOverride?: number;
 }
 
-export type RenderOptions = PuzzleRenderOptions | BlunderRenderOptions;
+export interface BrilliantRenderOptions extends CommonRenderOptions {
+  template: "brilliant";
+  game: ChessGame;
+  /** 1-based ply index forcing which move is treated as the standout move, if given. */
+  moveOverride?: number;
+}
+
+export type RenderOptions = PuzzleRenderOptions | BlunderRenderOptions | BrilliantRenderOptions;
 
 function resolveTemplate(flags: CliFlags): TemplateName {
   const template = flags.template ?? "puzzle";
@@ -138,25 +145,41 @@ async function resolvePuzzleOptions(flags: CliFlags): Promise<PuzzleRenderOption
   return { ...commonOptions(flags, output), template: "puzzle", fen, sideToMove };
 }
 
-async function resolveBlunderOptions(flags: CliFlags): Promise<BlunderRenderOptions> {
+/** Shared input resolution for every PGN-based template (blunder, brilliant, ...). */
+async function resolvePgnGame(
+  flags: CliFlags,
+  templateLabel: string,
+): Promise<{ game: ChessGame; output: string }> {
   if (flags.fen !== undefined) {
-    throw new CliArgumentError("The blunder template takes a PGN game, not --fen.");
+    throw new CliArgumentError(`The ${templateLabel} template takes a PGN game, not --fen.`);
   }
   if (flags.input === undefined) {
     throw new CliArgumentError("Missing input: pass a .pgn file path");
   }
   if (extname(flags.input).toLowerCase() !== ".pgn") {
-    throw new CliArgumentError("The blunder template takes a PGN game (a .pgn file).");
+    throw new CliArgumentError(`The ${templateLabel} template takes a PGN game (a .pgn file).`);
   }
   const raw = await readInputFile(flags.input);
   const game = loadPgn(raw);
   if (game.plies.length === 0) {
-    throw new CliArgumentError(`"${flags.input}" contains no moves to analyze for a blunder.`);
+    throw new CliArgumentError(
+      `"${flags.input}" contains no moves to analyze for ${templateLabel}.`,
+    );
   }
   const output = flags.output ?? defaultOutputPath(flags.input);
+  return { game, output };
+}
+
+async function resolveBlunderOptions(flags: CliFlags): Promise<BlunderRenderOptions> {
+  const { game, output } = await resolvePgnGame(flags, "blunder");
+  return { ...commonOptions(flags, output), template: "blunder", game, moveOverride: flags.move };
+}
+
+async function resolveBrilliantOptions(flags: CliFlags): Promise<BrilliantRenderOptions> {
+  const { game, output } = await resolvePgnGame(flags, "brilliant");
   return {
     ...commonOptions(flags, output),
-    template: "blunder",
+    template: "brilliant",
     game,
     moveOverride: flags.move,
   };
@@ -174,5 +197,7 @@ export async function resolveOptions(flags: CliFlags): Promise<RenderOptions> {
       return resolvePuzzleOptions(flags);
     case "blunder":
       return resolveBlunderOptions(flags);
+    case "brilliant":
+      return resolveBrilliantOptions(flags);
   }
 }

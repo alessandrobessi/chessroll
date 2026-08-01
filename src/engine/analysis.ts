@@ -1,3 +1,4 @@
+import { Chess } from "chess.js";
 import { sideToMoveFromFen } from "../chess/fen.js";
 import type { ChessGame, Side } from "../chess/types.js";
 import type { AnalysisCache, CacheKeyParams } from "./cache.js";
@@ -38,6 +39,39 @@ export interface AnalyzePositionOptions {
 }
 
 /**
+ * A position with no legal moves (checkmate or stalemate) can't be
+ * analyzed by Stockfish in the normal sense: `go depth N` there just
+ * returns `bestmove (none)` with no PV at all, not a real evaluation (a
+ * raw UCI `score mate 0` for this case is ambiguous — it doesn't carry a
+ * sign indicating who actually lost). Since chess.js already tells us the
+ * outcome unambiguously, short-circuit before ever asking the engine.
+ */
+function terminalPositionAnalysis(
+  fen: string,
+  sideToMove: Side,
+  engineVersion: string,
+): PositionAnalysis | undefined {
+  const chess = new Chess(fen);
+  if (chess.isCheckmate()) {
+    // The side to move has just been mated — decisive and correctly
+    // signed via the same normalizeScore() every other score goes through.
+    const score = normalizeScore({ type: "mate", value: -1 }, sideToMove);
+    return { fen, engineVersion, bestMove: "", score, pv: [], multipv: [] };
+  }
+  if (chess.isStalemate()) {
+    return {
+      fen,
+      engineVersion,
+      bestMove: "",
+      score: { type: "cp", value: 0, perspective: "white" },
+      pv: [],
+      multipv: [],
+    };
+  }
+  return undefined;
+}
+
+/**
  * Runs (or reuses a cached) Stockfish analysis and normalizes the raw,
  * side-to-move-relative scores to White's perspective before anything else
  * in the app sees them.
@@ -60,24 +94,29 @@ export async function analyzePosition(
     if (cached) return cached;
   }
 
-  const raw = await engine.analyze({ fen, depth, nodes });
-  const multipv: CandidateLine[] = raw.lines.map((line) => ({
-    rank: line.multipv ?? 1,
-    score: normalizeScore(line.score, sideToMove),
-    moves: line.pv,
-  }));
-  const best = multipv.find((line) => line.rank === 1) ?? multipv[0]!;
-
-  const analysis: PositionAnalysis = {
-    fen,
-    engineVersion: raw.engineVersion,
-    depth,
-    nodes,
-    bestMove: raw.bestMove,
-    score: best.score,
-    pv: best.moves,
-    multipv,
-  };
+  const terminal = terminalPositionAnalysis(fen, sideToMove, engine.engineVersion);
+  let analysis: PositionAnalysis;
+  if (terminal) {
+    analysis = terminal;
+  } else {
+    const raw = await engine.analyze({ fen, depth, nodes });
+    const multipv: CandidateLine[] = raw.lines.map((line) => ({
+      rank: line.multipv ?? 1,
+      score: normalizeScore(line.score, sideToMove),
+      moves: line.pv,
+    }));
+    const best = multipv.find((line) => line.rank === 1) ?? multipv[0]!;
+    analysis = {
+      fen,
+      engineVersion: raw.engineVersion,
+      depth,
+      nodes,
+      bestMove: raw.bestMove,
+      score: best.score,
+      pv: best.moves,
+      multipv,
+    };
+  }
 
   if (cache && useCache) {
     await cache.set(cacheParams, analysis);

@@ -8,23 +8,24 @@ Chessroll is a deterministic TypeScript/Node CLI that turns PGN games and FEN po
 PGN / FEN → chess model → Stockfish analysis → story → scene timeline → renderAtTime(t) → MP4
 ```
 
-**Status: two templates working end-to-end — `puzzle` and `blunder`.** This is not yet the full product described in [`ROADMAP.md`](./ROADMAP.md)/[`BLUEPRINT.md`](./BLUEPRINT.md); see [Roadmap](#roadmap) below for exactly what's built versus planned.
+**Status: three templates working end-to-end — `puzzle`, `blunder`, and `brilliant`.** This is not yet the full product described in [`ROADMAP.md`](./ROADMAP.md)/[`BLUEPRINT.md`](./BLUEPRINT.md); see [Roadmap](#roadmap) below for exactly what's built versus planned.
 
 ## Demo
 
 No GitHub Pages site exists yet (see [Roadmap](#roadmap)), but the canonical demo videos are committed under [`demo/`](./demo) — click a poster to play the MP4:
 
-| Puzzle                                                                                                                                                          | Blunder                                                                                                                                                     |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [![Puzzle demo — find the move, mate in 2](demo/puzzle/poster.png)](demo/puzzle/demo.mp4)                                                                       | [![Blunder demo — spot the mistake](demo/blunder/poster.png)](demo/blunder/demo.mp4)                                                                        |
-| [`demo/puzzle/position.fen`](demo/puzzle/position.fen) — a mate-in-2 rook "staircase": find the move, countdown, oxblood reveal, forced continuation to `Rh8#`. | [`demo/blunder/game.pgn`](demo/blunder/game.pgn) — an original short game where `15...Nxe4??` opens the diagonal to a hanging queen, punished by `16.Bxd8`. |
+| Puzzle                                                                                                                                                          | Blunder                                                                                                                                                     | Brilliant                                                                                                                                             |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![Puzzle demo — find the move, mate in 2](demo/puzzle/poster.png)](demo/puzzle/demo.mp4)                                                                       | [![Blunder demo — spot the mistake](demo/blunder/poster.png)](demo/blunder/demo.mp4)                                                                        | [![Brilliant demo — a forced-mate queen sacrifice](demo/brilliant/poster.png)](demo/brilliant/demo.mp4)                                               |
+| [`demo/puzzle/position.fen`](demo/puzzle/position.fen) — a mate-in-2 rook "staircase": find the move, countdown, oxblood reveal, forced continuation to `Rh8#`. | [`demo/blunder/game.pgn`](demo/blunder/game.pgn) — an original short game where `15...Nxe4??` opens the diagonal to a hanging queen, punished by `16.Bxd8`. | [`demo/brilliant/game.pgn`](demo/brilliant/game.pgn) — a constructed smothered-mate position: `1.Qg8+!!` sacrifices the queen, forcing `Rxg8 2.Nf7#`. |
 
-Regenerate either locally:
+Regenerate any of these locally:
 
 ```bash
 pnpm install && pnpm build
 node dist/cli.js demo/puzzle/position.fen --template puzzle -o demo/puzzle/demo.mp4 --show-eval
 node dist/cli.js demo/blunder/game.pgn --template blunder -o demo/blunder/demo.mp4 --show-eval
+node dist/cli.js demo/brilliant/game.pgn --template brilliant -o demo/brilliant/demo.mp4 --show-eval
 ```
 
 ## What Chessroll does
@@ -42,15 +43,15 @@ Every step is inspectable independently — see [Debugging](#debugging).
 
 ## Templates
 
-| Template    | Input  | Status     | Description                                                                                                                                                                                                                                              |
-| ----------- | ------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `puzzle`    | FEN    | ✅ done    | Position → prompt → countdown → oxblood reveal → best move → forced continuation → payoff.                                                                                                                                                               |
-| `blunder`   | PGN    | ✅ done    | Auto-detects (or `--move` forces) the game's most severe mistake → hook → quick lead-in → the blunder move plays (unflagged) → freeze → "spot the mistake?" → countdown → reveal (highlighted + evaluation swing) → engine's actual punishment → payoff. |
-| `replay`    | PGN    | 🚧 planned | Full game replay with importance-weighted move timing.                                                                                                                                                                                                   |
-| `game60`    | PGN    | 🚧 planned | A game compressed into ~60s.                                                                                                                                                                                                                             |
-| `guess`     | PGN    | 🚧 planned | Pause before a selected move, guess what was played.                                                                                                                                                                                                     |
-| `brilliant` | PGN    | 🚧 planned | Centered on one standout tactical/strategic move.                                                                                                                                                                                                        |
-| `auto`      | either | 🚧 planned | Analyze, pick the strongest story, choose a template automatically.                                                                                                                                                                                      |
+| Template    | Input  | Status     | Description                                                                                                                                                                                                                                                                                      |
+| ----------- | ------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `puzzle`    | FEN    | ✅ done    | Position → prompt → countdown → oxblood reveal → best move → forced continuation → payoff.                                                                                                                                                                                                       |
+| `blunder`   | PGN    | ✅ done    | Auto-detects (or `--move` forces) the game's most severe mistake → hook → quick lead-in → the blunder move plays (unflagged) → freeze → "spot the mistake?" → countdown → reveal (highlighted + evaluation swing) → engine's actual punishment → payoff.                                         |
+| `replay`    | PGN    | 🚧 planned | Full game replay with importance-weighted move timing.                                                                                                                                                                                                                                           |
+| `game60`    | PGN    | 🚧 planned | A game compressed into ~60s.                                                                                                                                                                                                                                                                     |
+| `guess`     | PGN    | 🚧 planned | Pause before a selected move, guess what was played.                                                                                                                                                                                                                                             |
+| `brilliant` | PGN    | ✅ done    | Auto-detects (or `--move` forces) the game's standout move — a near-unique best move or a material sacrifice that still wins — → hook → lead-in → freeze → "X to move?" → countdown → oxblood reveal → the move animates → forced continuation proving the point → payoff (`!`/`!!` annotation). |
+| `auto`      | either | 🚧 planned | Analyze, pick the strongest story, choose a template automatically.                                                                                                                                                                                                                              |
 
 ## Quick start
 
@@ -73,6 +74,16 @@ node dist/cli.js test/fixtures/blunder-game.pgn --template blunder -o blunder.mp
 # Force a specific ply instead of auto-detecting (1-based ply index):
 node dist/cli.js test/fixtures/blunder-game.pgn --template blunder --move 16 -o forced.mp4
 ```
+
+### PGN example (`brilliant`)
+
+```bash
+node dist/cli.js test/fixtures/brilliant-game.pgn --template brilliant -o brilliant.mp4 --show-eval --multipv 2
+# Force a specific ply instead of auto-detecting (1-based ply index):
+node dist/cli.js test/fixtures/brilliant-game.pgn --template brilliant --move 1 -o forced.mp4
+```
+
+`brilliant` needs `--multipv 2` or higher to measure the gap to the engine's runner-up alternative (the CLI raises this automatically to 2 when the template is `brilliant`, even if `--multipv` is left unset).
 
 ## Installation
 
@@ -106,13 +117,13 @@ Chessroll discovers `stockfish` on `PATH` by default; override per run with `--e
 chessroll <input> [options]
 
 Input:
-  <input>                 .fen file (puzzle) or .pgn file (blunder)
+  <input>                 .fen file (puzzle) or .pgn file (blunder, brilliant)
   --fen <fen>              inline FEN, instead of an input file (puzzle only)
 
 Options:
   -o, --output <path>      output MP4 path (default: <input basename>.mp4)
-  --template <name>        "puzzle" (default, needs FEN) or "blunder" (needs PGN)
-  --move <n>                1-based ply to force as the blunder (blunder only)
+  --template <name>        "puzzle" (default, needs FEN), "blunder" or "brilliant" (need PGN)
+  --move <n>                1-based ply to force as the featured move (blunder/brilliant only)
   --orientation <side>      white | black | auto
   --fps <n>                  frames per second (default 30)
   --width <px>               output width (default 1080)
@@ -122,8 +133,8 @@ Options:
   --nodes <n>                 search node limit (mutually exclusive with --depth)
   --threads <n>                engine threads (default 1)
   --hash <mb>                   engine hash size in MB (default 128)
-  --multipv <n>                  engine MultiPV (default 1)
-  --countdown <seconds>          puzzle/blunder solve countdown (default 5)
+  --multipv <n>                  engine MultiPV (default 1; brilliant auto-raises to >= 2)
+  --countdown <seconds>          puzzle/blunder/brilliant solve countdown (default 5)
   --show-eval / --no-eval         reveal the evaluation at payoff (default hidden)
   --coordinates / --no-coordinates board coordinates (not yet drawn — accepted, not visual yet)
   --keep-temp                      keep the temporary frame directory
@@ -138,7 +149,7 @@ Exit codes are stable once published (`src/utils/errors.ts`): `1` unexpected fai
 
 ## Engine analysis
 
-Stockfish is driven directly over UCI (`src/engine/uci.ts` — spawn → `uci`/`uciok` → `setoption` → `isready`/`readyok` → `position`/`go`/`info`/`bestmove`). Raw scores are always relative to the side to move; `src/engine/normalize.ts` is the single place they get flipped to White's perspective, and it's the only place mate scores get formatted (`M3`/`-M2`) — they are never coerced into a fake centipawn value anywhere else in the codebase. `blunder`'s detector unifies cp and mate scores onto one internal _ranking_ scale purely to compare severity (a mate always outranks any realistic cp swing); that value is never surfaced as a display string.
+Stockfish is driven directly over UCI (`src/engine/uci.ts` — spawn → `uci`/`uciok` → `setoption` → `isready`/`readyok` → `position`/`go`/`info`/`bestmove`). Raw scores are always relative to the side to move; `src/engine/normalize.ts` is the single place they get flipped to White's perspective, and it's the only place mate scores get formatted (`M3`/`-M2`) — they are never coerced into a fake centipawn value anywhere else in the codebase. `normalize.ts` also exports `moverComparableValue`, one internal mate-aware _ranking_ scale (a mate always outranks any realistic cp swing) shared by both `blunder`'s and `brilliant`'s detectors purely to compare candidate severity; that value is never surfaced as a display string. `brilliant` compares the played move's resulting value against the engine's own top line rather than a literal UCI move-string match, since two genuinely tied best moves can make the engine's reported `bestmove` non-deterministic across runs.
 
 ## Deterministic rendering
 
@@ -168,7 +179,7 @@ The board squares/overlays use Chessroll's own tokens above. Pieces are [lichess
 flowchart TD
     A[PGN / FEN] --> B["chess.js normalization<br/>(src/chess)"]
     B --> C["Stockfish UCI analysis<br/>(src/engine)"]
-    C --> D["Story construction<br/>(src/story: puzzle.ts, blunder.ts)"]
+    C --> D["Story construction<br/>(src/story: puzzle.ts, blunder.ts, brilliant.ts)"]
     D --> E["SceneTimeline<br/>(src/scene)"]
     E --> F["Board/overlay markup<br/>(src/board/render.ts)"]
     F --> G["Chromium page<br/>renderAtTime(t) per frame<br/>(renderer/ + src/video)"]
@@ -185,7 +196,7 @@ src/
   cli.ts, debug-cli.ts, index.ts   entrypoints + renderVideo() orchestrator
   chess/     PGN/FEN loading, normalized Ply/ChessGame model
   engine/    Stockfish UCI, normalization, disk cache, analyzeGame()
-  story/     puzzle.ts, blunder.ts — chess+analysis -> SceneTimeline
+  story/     puzzle.ts, blunder.ts, brilliant.ts — chess+analysis -> SceneTimeline
   scene/     pure timeline types, interpolation, stateAtTime()
   board/     geometry, theme, cburnett piece set, moves, arrows, render.ts
   video/     Playwright capture, ffmpeg encode, ffprobe validation
@@ -214,11 +225,11 @@ node dist/debug-cli.js test/fixtures/puzzle.fen --template puzzle --time 7.5 --o
 pnpm typecheck && pnpm lint && pnpm format
 pnpm test:unit          # pure logic, no external processes
 pnpm test:integration   # real Stockfish / real Chromium via Playwright
-pnpm test:e2e           # full-pipeline acceptance gates (puzzle, blunder)
-pnpm test               # everything — 129 tests as of this writing
+pnpm test:e2e           # full-pipeline acceptance gates (puzzle, blunder, brilliant)
+pnpm test               # everything — 156 tests as of this writing
 ```
 
-Chess-correctness fixtures (`test/fixtures/`) — castling both directions, en passant, promotion/underpromotion, checkmate, stalemate, and the puzzle/blunder demo positions — are each verified programmatically against chess.js (and, for the demo fixtures, against the real Stockfish binary) rather than hand-derived. This caught a real bug during development: chess.js's own `isCapture()` excludes en passant, which would have produced an incorrect `Ply.flags.capture`.
+Chess-correctness fixtures (`test/fixtures/`) — castling both directions, en passant, promotion/underpromotion, checkmate, stalemate, and the puzzle/blunder/brilliant demo positions — are each verified programmatically against chess.js (and, for the demo fixtures, against the real Stockfish binary) rather than hand-derived. This caught a real bug during development: chess.js's own `isCapture()` excludes en passant, which would have produced an incorrect `Ply.flags.capture`.
 
 ## GitHub Pages
 
@@ -231,14 +242,14 @@ Done (this repository, current state):
 - Normalized chess model (FEN + PGN), verified special-move fixtures
 - Deterministic SVG board/overlay renderer, lichess's cburnett piece set
 - Stockfish UCI integration, score normalization, disk cache
-- `puzzle` and `blunder` templates, full CLI + debug CLI
+- `puzzle`, `blunder`, and `brilliant` templates, full CLI + debug CLI
 - Playwright capture → FFmpeg encode pipeline
-- Canonical demo assets for both working templates (`demo/puzzle/`, `demo/blunder/`)
-- 129 tests across unit/integration/e2e, including two full-pipeline acceptance gates
+- Canonical demo assets for all three working templates (`demo/puzzle/`, `demo/blunder/`, `demo/brilliant/`)
+- 156 tests across unit/integration/e2e, including three full-pipeline acceptance gates
 
 Not yet built — see [`ROADMAP.md`](./ROADMAP.md) and [`BLUEPRINT.md`](./BLUEPRINT.md) for the full spec:
 
-- `replay`, `game60`, `guess`, `brilliant`, `auto` templates (and their demo assets)
+- `replay`, `game60`, `guess`, `auto` templates (and their demo assets)
 - A GitHub Pages showcase site (`site/`)
 - CI (`ci.yml`/`demo.yml`/`pages.yml`)
 - Optional sound design

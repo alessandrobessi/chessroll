@@ -21,16 +21,16 @@ program
   .name("chessroll")
   .description("Turn PGN/FEN chess content into deterministic short-form videos")
   .version("0.0.0")
-  .argument("[input]", "path to a .fen file (puzzle) or .pgn file (blunder)")
+  .argument("[input]", "path to a .fen file (puzzle) or .pgn file (blunder, brilliant)")
   .option("--fen <fen>", "inline FEN string, instead of an input file (puzzle only)")
   .option("-o, --output <path>", "output MP4 path")
   .option(
     "--template <name>",
-    'content template: "puzzle" (default, needs FEN) or "blunder" (needs PGN)',
+    'content template: "puzzle" (default, needs FEN), "blunder" or "brilliant" (need PGN)',
   )
   .option(
     "--move <n>",
-    "1-based ply to force as the blunder, instead of auto-detecting (blunder only)",
+    "1-based ply to force the featured move, instead of auto-detecting (blunder/brilliant only)",
     parseIntArg("--move"),
   )
   .option("--orientation <side>", "white | black | auto")

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { formatEvaluation, normalizeScore } from "../../../src/engine/normalize.js";
+import {
+  formatEvaluation,
+  moverComparableValue,
+  normalizeScore,
+} from "../../../src/engine/normalize.js";
 
 describe("normalizeScore", () => {
   it("keeps a White-to-move score unchanged", () => {
@@ -44,5 +48,44 @@ describe("formatEvaluation", () => {
   it("formats mate scores as M<n> / -M<n>, never as a centipawn number", () => {
     expect(formatEvaluation({ type: "mate", value: 3, perspective: "white" })).toBe("M3");
     expect(formatEvaluation({ type: "mate", value: -2, perspective: "white" })).toBe("-M2");
+  });
+});
+
+describe("moverComparableValue", () => {
+  it("returns the plain cp value for the mover on a White-perspective score", () => {
+    expect(moverComparableValue({ type: "cp", value: 50, perspective: "white" }, "white")).toBe(50);
+    expect(moverComparableValue({ type: "cp", value: 50, perspective: "white" }, "black")).toBe(
+      -50,
+    );
+  });
+
+  it("maps mate scores to a magnitude that always dominates any realistic cp value", () => {
+    const whiteMatesSoon = moverComparableValue(
+      { type: "mate", value: 3, perspective: "white" },
+      "white",
+    );
+    const hugeCpAdvantage = moverComparableValue(
+      { type: "cp", value: 2000, perspective: "white" },
+      "white",
+    );
+    expect(whiteMatesSoon).toBeGreaterThan(hugeCpAdvantage);
+
+    const whiteGetsMated = moverComparableValue(
+      { type: "mate", value: -3, perspective: "white" },
+      "white",
+    );
+    expect(whiteGetsMated).toBeLessThan(-hugeCpAdvantage);
+  });
+
+  it("is symmetric: mover being mated is exactly as bad as the opponent mating being good for them", () => {
+    const forMoverWhite = moverComparableValue(
+      { type: "mate", value: -3, perspective: "white" },
+      "white",
+    );
+    const forMoverBlack = moverComparableValue(
+      { type: "mate", value: -3, perspective: "white" },
+      "black",
+    );
+    expect(forMoverBlack).toBe(-forMoverWhite);
   });
 });
