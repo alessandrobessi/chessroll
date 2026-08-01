@@ -122,4 +122,12 @@ describe("resolveOptions", () => {
     expect(options.countdownSeconds).toBe(3);
     expect(options.orientation).toBe("black");
   });
+
+  it("defaults sound to true, and --no-sound (sound: false) round-trips", async () => {
+    const defaulted = await resolveOptions({ fen: PUZZLE_FEN });
+    expect(defaulted.sound).toBe(true);
+
+    const muted = await resolveOptions({ fen: PUZZLE_FEN, sound: false });
+    expect(muted.sound).toBe(false);
+  });
 });

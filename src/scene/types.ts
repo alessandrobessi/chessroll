@@ -1,6 +1,7 @@
 import type { Square } from "chess.js";
 import type { ArrowElement } from "../board/arrows.js";
 import type { MoveAnimation } from "../board/moves.js";
+import type { AudioCue } from "../audio/timeline.js";
 import type { Side } from "../chess/types.js";
 
 export interface BoardPosition {
@@ -59,4 +60,6 @@ export interface SceneTimeline {
   segments: SceneSegment[];
   /** Draw file/rank labels in the board's outer margin. Default false. */
   showCoordinates?: boolean;
+  /** Sound cues to mix into the encoded video. Always computed; muting happens at encode time. */
+  audioCues?: AudioCue[];
 }

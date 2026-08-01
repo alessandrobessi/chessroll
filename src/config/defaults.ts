@@ -10,6 +10,7 @@ export const DEFAULTS = {
   countdownSeconds: 5,
   showEval: false,
   coordinates: false,
+  sound: true,
   keepTemp: false,
   cache: true,
   verbose: false,

@@ -137,6 +137,7 @@ Options:
   --countdown <seconds>          puzzle/blunder/brilliant solve countdown (default 5)
   --show-eval / --no-eval         reveal the evaluation at payoff (default hidden)
   --coordinates / --no-coordinates external file/rank labels outside the board (default hidden)
+  --sound / --no-sound              synthesized move/capture/check/checkmate/countdown/reveal cues (default on)
   --keep-temp                      keep the temporary frame directory
   --no-cache                        bypass the analysis cache
   --verbose / --quiet
@@ -150,6 +151,10 @@ Exit codes are stable once published (`src/utils/errors.ts`): `1` unexpected fai
 ## Engine analysis
 
 Stockfish is driven directly over UCI (`src/engine/uci.ts` — spawn → `uci`/`uciok` → `setoption` → `isready`/`readyok` → `position`/`go`/`info`/`bestmove`). Raw scores are always relative to the side to move; `src/engine/normalize.ts` is the single place they get flipped to White's perspective, and it's the only place mate scores get formatted (`M3`/`-M2`) — they are never coerced into a fake centipawn value anywhere else in the codebase. `normalize.ts` also exports `moverComparableValue`, one internal mate-aware _ranking_ scale (a mate always outranks any realistic cp swing) shared by both `blunder`'s and `brilliant`'s detectors purely to compare candidate severity; that value is never surfaced as a display string. `brilliant` compares the played move's resulting value against the engine's own top line rather than a literal UCI move-string match, since two genuinely tied best moves can make the engine's reported `bestmove` non-deterministic across runs.
+
+## Sound design
+
+Every cue (`move`, `capture`, `check`, `checkmate`, `countdown-tick`, `reveal`) is synthesized procedurally with FFmpeg's own `lavfi` audio sources (`sine`/`aevalsrc`) at render time — nothing is ever sourced from anywhere, sidestepping BLUEPRINT.md §28's "sound files must be original or legally redistributable" requirement entirely, and keeping generation deterministic (`src/audio/sounds.ts` has the exact frequencies/durations/gains). Each story builder (`src/story/{puzzle,blunder,brilliant}.ts`) records timestamped cues alongside the scene it's already constructing — landing-synced (`cueForPly`, off the same `Ply.flags` chess.js already computes) for move/capture/check/checkmate, onset-synced for countdown-ticks and the reveal moment. `src/video/ffmpeg.ts` mixes every cue into a single audio bed pinned to the exact video duration (`buildAudioFilterGraph`/`composeAudioBed`) and muxes it in as AAC. On by default; `--no-sound` produces a byte-for-byte identical video-only path.
 
 ## Deterministic rendering
 
@@ -199,7 +204,8 @@ src/
   story/     puzzle.ts, blunder.ts, brilliant.ts — chess+analysis -> SceneTimeline
   scene/     pure timeline types, interpolation, stateAtTime()
   board/     geometry, theme, cburnett piece set, moves, arrows, render.ts
-  video/     Playwright capture, ffmpeg encode, ffprobe validation
+  audio/     cue types (move/capture/check/checkmate/countdown-tick/reveal), synthesis params
+  video/     Playwright capture, ffmpeg encode (incl. audio-bed synthesis+mux), ffprobe validation
   config/    CLI-flag resolution and defaults
   utils/     exit-code errors, temp dirs, executable discovery
 renderer/    the Chromium-loaded page (index.html, renderer.ts, renderer.css)
@@ -226,7 +232,7 @@ pnpm typecheck && pnpm lint && pnpm format
 pnpm test:unit          # pure logic, no external processes
 pnpm test:integration   # real Stockfish / real Chromium via Playwright
 pnpm test:e2e           # full-pipeline acceptance gates (puzzle, blunder, brilliant)
-pnpm test               # everything — 156 tests as of this writing
+pnpm test               # everything — 187 tests as of this writing
 ```
 
 Chess-correctness fixtures (`test/fixtures/`) — castling both directions, en passant, promotion/underpromotion, checkmate, stalemate, and the puzzle/blunder/brilliant demo positions — are each verified programmatically against chess.js (and, for the demo fixtures, against the real Stockfish binary) rather than hand-derived. This caught a real bug during development: chess.js's own `isCapture()` excludes en passant, which would have produced an incorrect `Ply.flags.capture`.
@@ -244,15 +250,15 @@ Done (this repository, current state):
 - Stockfish UCI integration, score normalization, disk cache
 - `puzzle`, `blunder`, and `brilliant` templates, full CLI + debug CLI
 - Playwright capture → FFmpeg encode pipeline
+- Synthesized sound design (`src/audio/`) — move/capture/check/checkmate/countdown-tick/reveal cues, muxed in as AAC, on by default (`--no-sound` to mute)
 - Canonical demo assets for all three working templates (`demo/puzzle/`, `demo/blunder/`, `demo/brilliant/`)
-- 156 tests across unit/integration/e2e, including three full-pipeline acceptance gates
+- 187 tests across unit/integration/e2e, including three full-pipeline acceptance gates
 
 Not yet built — see [`ROADMAP.md`](./ROADMAP.md) and [`BLUEPRINT.md`](./BLUEPRINT.md) for the full spec:
 
 - `replay`, `game60`, `guess`, `auto` templates (and their demo assets)
 - A GitHub Pages showcase site (`site/`)
 - CI (`ci.yml`/`demo.yml`/`pages.yml`)
-- Optional sound design
 - Visual-regression testing and a finalized visual pass (current board square colors are placeholders, see [Visual identity](#visual-identity))
 
 ## Licensing

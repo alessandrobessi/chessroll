@@ -1,6 +1,7 @@
 import { Chess } from "chess.js";
 import { toMoveAnimation } from "../board/moves.js";
 import { COLORS } from "../board/theme.js";
+import { cueForPly, type AudioCue } from "../audio/timeline.js";
 import { applyUciMove } from "../chess/game.js";
 import type { Ply, Side } from "../chess/types.js";
 import type { PositionAnalysis } from "../engine/analysis.js";
@@ -60,6 +61,7 @@ export function buildPuzzleStory(
   const extraPlies = continuation.slice(1);
 
   const segments: SceneSegment[] = [];
+  const cues: AudioCue[] = [];
   let t = 0;
 
   const push = (length: number, state: SceneDescriptor): void => {
@@ -82,6 +84,7 @@ export function buildPuzzleStory(
   // PROMPT phase) so it's legible to a viewer who wasn't watching from
   // t=0; arrows/highlights/eval are simply never set on these descriptors.
   for (let remaining = options.countdownSeconds; remaining >= 1; remaining--) {
+    cues.push({ time: t, type: "countdown-tick" });
     push(1, {
       position: { fen, orientation },
       subtitle: { text: `${sideToMove.toUpperCase()} TO MOVE` },
@@ -97,6 +100,7 @@ export function buildPuzzleStory(
   const arrows: SceneDescriptor["arrows"] = [
     { from: bestPly.from, to: bestPly.to, color: COLORS.accent, opacity: 0.9 },
   ];
+  cues.push({ time: t, type: "reveal" });
   push(REVEAL_SECONDS, { position: { fen, orientation }, highlights, arrows });
 
   // MOVE — animate the best move; arrow/highlight remain visible.
@@ -106,6 +110,7 @@ export function buildPuzzleStory(
     highlights,
     arrows,
   });
+  cues.push({ time: t, type: cueForPly(bestPly) });
 
   // CONTINUATION — one segment per remaining forced ply. Degrades to
   // nothing for a mate-in-1, where extraPlies is empty.
@@ -120,6 +125,7 @@ export function buildPuzzleStory(
         moveAnimation: toMoveAnimation(ply, { start: t, end: t + perPly }),
         highlights: [{ square: ply.to, style: "destination" }],
       });
+      cues.push({ time: t, type: cueForPly(ply) });
     }
   }
 
@@ -134,5 +140,5 @@ export function buildPuzzleStory(
   }
   push(PAYOFF_SECONDS, payoff);
 
-  return createTimeline(segments, { showCoordinates: options.coordinates });
+  return createTimeline(segments, { showCoordinates: options.coordinates, audioCues: cues });
 }

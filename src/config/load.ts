@@ -30,6 +30,7 @@ export interface CliFlags {
   countdown?: number;
   showEval?: boolean;
   coordinates?: boolean;
+  sound?: boolean;
   keepTemp?: boolean;
   cache?: boolean;
   verbose?: boolean;
@@ -51,6 +52,7 @@ interface CommonRenderOptions {
   countdownSeconds: number;
   showEval: boolean;
   coordinates: boolean;
+  sound: boolean;
   keepTemp: boolean;
   cache: boolean;
   verbose: boolean;
@@ -126,6 +128,7 @@ function commonOptions(flags: CliFlags, output: string): CommonRenderOptions {
     countdownSeconds: flags.countdown ?? DEFAULTS.countdownSeconds,
     showEval: flags.showEval ?? DEFAULTS.showEval,
     coordinates: flags.coordinates ?? DEFAULTS.coordinates,
+    sound: flags.sound ?? DEFAULTS.sound,
     keepTemp: flags.keepTemp ?? DEFAULTS.keepTemp,
     cache: flags.cache ?? DEFAULTS.cache,
     verbose: flags.verbose ?? DEFAULTS.verbose,

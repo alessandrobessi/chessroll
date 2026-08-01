@@ -124,10 +124,12 @@ export async function renderVideo(options: RenderOptions): Promise<RenderResult>
   });
 
   let timelineDuration: number;
+  let audioCues: SceneTimeline["audioCues"];
   let session: Awaited<ReturnType<typeof launchRenderer>>;
   try {
     const timeline = await buildTimeline(engine, options);
     timelineDuration = timeline.duration;
+    audioCues = options.sound ? timeline.audioCues : undefined;
 
     session = await launchRenderer({
       timeline,
@@ -154,6 +156,7 @@ export async function renderVideo(options: RenderOptions): Promise<RenderResult>
       frameCount: frames.frameCount,
       fps: options.fps,
       outputPath: options.output,
+      audioCues,
     });
 
     return {

@@ -133,4 +133,36 @@ describe("buildPuzzleStory", () => {
       }),
     ).toThrow();
   });
+
+  it("places a countdown-tick per second, a reveal cue, and landing-synced move cues", () => {
+    const timeline = buildPuzzleStory(PUZZLE_FEN, "white", PUZZLE_ANALYSIS, {
+      countdownSeconds: 5,
+      showEval: false,
+    });
+    expect(timeline.audioCues).toEqual([
+      { time: 2.5, type: "countdown-tick" },
+      { time: 3.5, type: "countdown-tick" },
+      { time: 4.5, type: "countdown-tick" },
+      { time: 5.5, type: "countdown-tick" },
+      { time: 6.5, type: "countdown-tick" },
+      { time: 7.5, type: "reveal" },
+      { time: 10, type: "move" }, // Ra7 lands (MOVE ends)
+      { time: 13, type: "move" }, // Kf8 lands (1st continuation ply)
+      { time: 16, type: "checkmate" }, // Rh8# lands (2nd continuation ply)
+    ]);
+  });
+
+  it("emits a checkmate cue with no continuation cues after it for a mate-in-1", () => {
+    const timeline = buildPuzzleStory(MATE_IN_1_FEN, "white", MATE_IN_1_ANALYSIS, {
+      countdownSeconds: 3,
+      showEval: false,
+    });
+    expect(timeline.audioCues).toEqual([
+      { time: 2.5, type: "countdown-tick" },
+      { time: 3.5, type: "countdown-tick" },
+      { time: 4.5, type: "countdown-tick" },
+      { time: 5.5, type: "reveal" },
+      { time: 8, type: "checkmate" }, // Re8# lands (MOVE ends), mate-in-1 so no continuation
+    ]);
+  });
 });

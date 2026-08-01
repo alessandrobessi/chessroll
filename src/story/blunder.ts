@@ -1,5 +1,6 @@
 import { Chess } from "chess.js";
 import { toMoveAnimation } from "../board/moves.js";
+import { cueForPly, type AudioCue } from "../audio/timeline.js";
 import { applyUciMove } from "../chess/game.js";
 import type { ChessGame, Ply, Side } from "../chess/types.js";
 import type { PositionAnalysis } from "../engine/analysis.js";
@@ -160,6 +161,7 @@ export function buildBlunderStory(
     : undefined;
 
   const segments: SceneSegment[] = [];
+  const cues: AudioCue[] = [];
   let t = 0;
   const push = (length: number, state: SceneDescriptor): void => {
     segments.push(phase(t, length, state));
@@ -178,14 +180,18 @@ export function buildBlunderStory(
       position: { fen: ply.fenBefore, orientation },
       moveAnimation: toMoveAnimation(ply, { start: t, end: t + LEAD_IN_PLY_SECONDS }),
     });
+    cues.push({ time: t, type: cueForPly(ply) });
   }
 
   // THE BLUNDER PLAYS — an ordinary-looking move, no highlight, no eval.
   // The viewer watches it happen without knowing yet that it's a mistake.
+  // Its sound is equally ordinary — cueForPly, not a special "wrong move"
+  // sting — matching the visual "no flag, no emphasis" design above.
   push(BLUNDER_PLAY_SECONDS, {
     position: { fen: candidate.ply.fenBefore, orientation },
     moveAnimation: toMoveAnimation(candidate.ply, { start: t, end: t + BLUNDER_PLAY_SECONDS }),
   });
+  cues.push({ time: t, type: cueForPly(candidate.ply) });
 
   // FREEZE — the resulting position holds; now ask the question.
   push(FREEZE_SECONDS, {
@@ -195,6 +201,7 @@ export function buildBlunderStory(
 
   // COUNTDOWN — structurally no arrows/highlights/eval, same guarantee as puzzle.
   for (let remaining = options.countdownSeconds; remaining >= 1; remaining--) {
+    cues.push({ time: t, type: "countdown-tick" });
     push(1, {
       position: { fen: candidate.ply.fenAfter, orientation },
       countdown: { value: remaining },
@@ -206,6 +213,7 @@ export function buildBlunderStory(
     { square: candidate.ply.from, style: "origin" },
     { square: candidate.ply.to, style: "critical" },
   ];
+  cues.push({ time: t, type: "reveal" });
   push(SWING_SECONDS, {
     position: { fen: candidate.ply.fenAfter, orientation },
     highlights: revealHighlights,
@@ -219,6 +227,7 @@ export function buildBlunderStory(
     moveAnimation: toMoveAnimation(punishment, { start: t, end: t + PUNISHMENT_SECONDS }),
     evaluation: swingEvaluation,
   });
+  cues.push({ time: t, type: cueForPly(punishment) });
 
   // PAYOFF
   push(PAYOFF_SECONDS, {
@@ -227,5 +236,5 @@ export function buildBlunderStory(
     evaluation: swingEvaluation,
   });
 
-  return createTimeline(segments, { showCoordinates: options.coordinates });
+  return createTimeline(segments, { showCoordinates: options.coordinates, audioCues: cues });
 }

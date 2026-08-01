@@ -1,4 +1,5 @@
 import { StoryConstructionError } from "../utils/errors.js";
+import type { AudioCue } from "../audio/timeline.js";
 import type { SceneDescriptor, SceneSegment, SceneTimeline } from "./types.js";
 
 /** Builds a segment spanning [start, start+length) with the given static state. */
@@ -16,7 +17,7 @@ export function phase(start: number, length: number, state: SceneDescriptor): Sc
  */
 export function createTimeline(
   segments: SceneSegment[],
-  options: { showCoordinates?: boolean } = {},
+  options: { showCoordinates?: boolean; audioCues?: AudioCue[] } = {},
 ): SceneTimeline {
   if (segments.length === 0) {
     throw new StoryConstructionError("A scene timeline needs at least one segment");
@@ -32,5 +33,10 @@ export function createTimeline(
     }
   }
   const last = segments[segments.length - 1]!;
-  return { duration: last.end, segments, showCoordinates: options.showCoordinates };
+  return {
+    duration: last.end,
+    segments,
+    showCoordinates: options.showCoordinates,
+    audioCues: options.audioCues,
+  };
 }

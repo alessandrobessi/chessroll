@@ -1,6 +1,7 @@
 import { Chess, type Color, type PieceSymbol } from "chess.js";
 import { toMoveAnimation } from "../board/moves.js";
 import { COLORS } from "../board/theme.js";
+import { cueForPly, type AudioCue } from "../audio/timeline.js";
 import { applyUciMove } from "../chess/game.js";
 import type { ChessGame, Ply, Side } from "../chess/types.js";
 import type { PositionAnalysis } from "../engine/analysis.js";
@@ -234,6 +235,7 @@ export function buildBrilliantStory(
   const continuation = replayContinuation(candidate.ply.fenAfter, candidate.afterAnalysis.pv);
 
   const segments: SceneSegment[] = [];
+  const cues: AudioCue[] = [];
   let t = 0;
   const push = (length: number, state: SceneDescriptor): void => {
     segments.push(phase(t, length, state));
@@ -252,6 +254,7 @@ export function buildBrilliantStory(
       position: { fen: ply.fenBefore, orientation },
       moveAnimation: toMoveAnimation(ply, { start: t, end: t + LEAD_IN_PLY_SECONDS }),
     });
+    cues.push({ time: t, type: cueForPly(ply) });
   }
 
   // PROMPT — freeze on the position before the move; side-to-move subtitle.
@@ -262,6 +265,7 @@ export function buildBrilliantStory(
 
   // COUNTDOWN — structurally no arrows/highlights/eval, same guarantee as puzzle.
   for (let remaining = options.countdownSeconds; remaining >= 1; remaining--) {
+    cues.push({ time: t, type: "countdown-tick" });
     push(1, {
       position: { fen: candidate.ply.fenBefore, orientation },
       subtitle: { text: `${candidate.ply.side.toUpperCase()} TO MOVE` },
@@ -277,6 +281,7 @@ export function buildBrilliantStory(
   const arrows: SceneDescriptor["arrows"] = [
     { from: candidate.ply.from, to: candidate.ply.to, color: COLORS.accent, opacity: 0.9 },
   ];
+  cues.push({ time: t, type: "reveal" });
   push(REVEAL_SECONDS, {
     position: { fen: candidate.ply.fenBefore, orientation },
     highlights,
@@ -290,6 +295,7 @@ export function buildBrilliantStory(
     highlights,
     arrows,
   });
+  cues.push({ time: t, type: cueForPly(candidate.ply) });
 
   // CONTINUATION — a short forced sequence proving the point.
   if (continuation.length > 0) {
@@ -303,6 +309,7 @@ export function buildBrilliantStory(
         moveAnimation: toMoveAnimation(ply, { start: t, end: t + perPly }),
         highlights: [{ square: ply.to, style: "destination" }],
       });
+      cues.push({ time: t, type: cueForPly(ply) });
     }
   }
 
@@ -326,5 +333,5 @@ export function buildBrilliantStory(
   }
   push(PAYOFF_SECONDS, payoff);
 
-  return createTimeline(segments, { showCoordinates: options.coordinates });
+  return createTimeline(segments, { showCoordinates: options.coordinates, audioCues: cues });
 }

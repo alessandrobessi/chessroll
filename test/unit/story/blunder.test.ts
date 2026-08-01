@@ -188,4 +188,25 @@ describe("buildBlunderStory", () => {
     const timeline = buildBlunderStory(GAME, candidate, { countdownSeconds: 3, showEval: false });
     expect(timeline.segments[0]!.state.position.orientation).toBe("black");
   });
+
+  it("sounds the blunder like any other move, then ticks/reveals/sounds the punishment", () => {
+    const candidate = selectBlunder(GAME, analyses);
+    const timeline = buildBlunderStory(GAME, candidate, { countdownSeconds: 3, showEval: false });
+    const expected = [
+      { time: 1.4, type: "move" }, // e4 lands (lead-in)
+      { time: 1.8, type: "move" }, // e5 lands (lead-in)
+      { time: 2.2, type: "move" }, // Nf3 lands (lead-in)
+      { time: 3.4, type: "move" }, // Nc6 lands — the blunder, no special sting
+      { time: 4.4, type: "countdown-tick" },
+      { time: 5.4, type: "countdown-tick" },
+      { time: 6.4, type: "countdown-tick" },
+      { time: 7.4, type: "reveal" },
+      { time: 10.1, type: "move" }, // Bc4 lands (punishment)
+    ];
+    expect(timeline.audioCues).toHaveLength(expected.length);
+    timeline.audioCues!.forEach((cue, i) => {
+      expect(cue.time).toBeCloseTo(expected[i]!.time, 5);
+      expect(cue.type).toBe(expected[i]!.type);
+    });
+  });
 });

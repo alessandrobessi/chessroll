@@ -250,4 +250,20 @@ describe("buildBrilliantStory", () => {
     });
     expect(timeline.segments[0]!.state.position.orientation).toBe("white");
   });
+
+  it("ticks the countdown, reveals, then sounds the sacrifice landing and its capture in reply", () => {
+    const candidate = selectBrilliantMove(SAC_GAME, analyses);
+    const timeline = buildBrilliantStory(SAC_GAME, candidate, {
+      countdownSeconds: 3,
+      showEval: false,
+    });
+    expect(timeline.audioCues).toEqual([
+      { time: 2.5, type: "countdown-tick" },
+      { time: 3.5, type: "countdown-tick" },
+      { time: 4.5, type: "countdown-tick" },
+      { time: 5.5, type: "reveal" },
+      { time: 8, type: "move" }, // Bd4 lands — cueForPly doesn't know it's a sacrifice
+      { time: 14, type: "capture" }, // cxd4 lands (the forced continuation)
+    ]);
+  });
 });

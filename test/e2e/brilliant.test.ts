@@ -61,7 +61,7 @@ describe("Gate: chessroll test/fixtures/brilliant-game.pgn --template brilliant"
     await rm(resolve("renderer/dist"), { recursive: true, force: true });
   });
 
-  it("produces a validated 1080x1920 30fps h264/yuv420p MP4", async () => {
+  it("produces a validated 1080x1920 30fps h264/yuv420p MP4 with an AAC audio track (sound defaults on)", async () => {
     const ffprobePath = await findExecutable("ffprobe", { installHint: "brew install ffmpeg" });
     const probe = await probeVideo(ffprobePath, outputPath);
     expect(probe.width).toBe(1080);
@@ -72,6 +72,9 @@ describe("Gate: chessroll test/fixtures/brilliant-game.pgn --template brilliant"
     // HOOK 1 + LEAD_IN(0 plies) + PROMPT 1.5 + COUNTDOWN 5 + REVEAL 1
     // + MOVE 1.5 + CONTINUATION 6 (2 plies * 3.0) + PAYOFF 3
     expect(probe.duration).toBeCloseTo(19.0, 1);
+    // resolveOptions() defaults `sound` to true — no --no-sound was passed.
+    expect(probe.hasAudio).toBe(true);
+    expect(probe.audioCodec).toBe("aac");
   }, 30_000);
 
   it("detects 1.Qg8+!! as the standout sacrifice and reveals nothing before the countdown ends", async () => {

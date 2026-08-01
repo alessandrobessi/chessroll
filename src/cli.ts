@@ -48,6 +48,8 @@ program
   .option("--no-eval", "never show the evaluation")
   .option("--coordinates", "show board coordinates")
   .option("--no-coordinates", "hide board coordinates")
+  .option("--sound", "enable synthesized sound effects (default)")
+  .option("--no-sound", "disable sound effects")
   .option("--keep-temp", "keep the temporary frame directory")
   .option("--no-cache", "bypass the analysis cache")
   .option("--verbose", "verbose logging")
@@ -79,6 +81,7 @@ program
       countdown: cliOptions.countdown as number | undefined,
       showEval,
       coordinates: cliOptions.coordinates as boolean | undefined,
+      sound: cliOptions.sound as boolean | undefined,
       keepTemp: cliOptions.keepTemp as boolean | undefined,
       cache: cliOptions.cache as boolean | undefined,
       verbose: cliOptions.verbose as boolean | undefined,
