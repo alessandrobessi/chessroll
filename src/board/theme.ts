@@ -1,7 +1,9 @@
 /**
  * Design tokens shared across the whole product (AGENTS.md "Visual design").
- * Board/piece values below are Chessroll-chosen defaults still pending
- * visual sign-off once real frames render (BLUEPRINT.md §10).
+ * Board colors below are a Chessroll-chosen default still pending visual
+ * sign-off once real frames render (BLUEPRINT.md §10). Piece colors are
+ * not themed here — they're baked into the vendored cburnett SVG markup
+ * itself (src/board/pieces.ts).
  */
 export const COLORS = {
   background: "#F6F3EC",
@@ -11,11 +13,6 @@ export const COLORS = {
 
   boardLight: "#EDEAE1",
   boardDark: "#8B8372",
-
-  pieceWhiteFill: "#FBFAF7",
-  pieceWhiteStroke: "#171717",
-  pieceBlackFill: "#171717",
-  pieceBlackStroke: "none",
 } as const;
 
 // Deliberately a system stack rather than a bundled/self-hosted font for

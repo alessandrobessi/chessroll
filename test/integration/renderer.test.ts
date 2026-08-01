@@ -65,7 +65,7 @@ describe("renderer.js (browser bundle)", () => {
       ],
     };
     await loadTimeline(timeline);
-    const pieceCount = await page.locator("#board-root g").count();
+    const pieceCount = await page.locator("#board-root > g[transform]").count();
     expect(pieceCount).toBe(32);
   });
 
@@ -92,7 +92,7 @@ describe("renderer.js (browser bundle)", () => {
     await loadTimeline(timeline);
     await page.evaluate(renderAtTimeInPage, 0.5);
 
-    const pieceCount = await page.locator("#board-root g").count();
+    const pieceCount = await page.locator("#board-root > g[transform]").count();
     expect(pieceCount).toBe(32);
 
     // The moving pawn must sit strictly between e2 and e4's y-coordinates,
@@ -104,7 +104,7 @@ describe("renderer.js (browser bundle)", () => {
     // No DOM lib in this Node-side test file, so type each node with just
     // the one member this callback needs.
     const transforms = await page
-      .locator("#board-root g")
+      .locator("#board-root > g[transform]")
       .evaluateAll((nodes) =>
         (nodes as Array<{ getAttribute(name: string): string | null }>).map((n) =>
           n.getAttribute("transform"),
