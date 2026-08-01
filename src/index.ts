@@ -57,6 +57,7 @@ async function buildTimeline(
         countdownSeconds: options.countdownSeconds,
         showEval: options.showEval,
         orientation,
+        coordinates: options.coordinates,
       });
     }
     case "blunder": {
@@ -74,6 +75,7 @@ async function buildTimeline(
         countdownSeconds: options.countdownSeconds,
         showEval: options.showEval,
         orientation,
+        coordinates: options.coordinates,
       });
     }
     case "brilliant": {
@@ -91,6 +93,7 @@ async function buildTimeline(
         countdownSeconds: options.countdownSeconds,
         showEval: options.showEval,
         orientation,
+        coordinates: options.coordinates,
       });
     }
   }

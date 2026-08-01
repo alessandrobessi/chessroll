@@ -134,5 +134,5 @@ export function buildPuzzleStory(
   }
   push(PAYOFF_SECONDS, payoff);
 
-  return createTimeline(segments);
+  return createTimeline(segments, { showCoordinates: options.coordinates });
 }

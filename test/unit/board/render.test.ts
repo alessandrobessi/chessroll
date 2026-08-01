@@ -97,6 +97,110 @@ describe("renderBoardSvg", () => {
     expect(svg).not.toContain('opacity="0.35"');
     expect(svg).not.toMatch(/<line[^>]*\sstroke="/);
   });
+
+  it("omits coordinate labels by default and when explicitly false", () => {
+    expect(renderBoardSvg(baseDescriptor(START_FEN), { geometry, t: 0 })).not.toContain("<text");
+    expect(
+      renderBoardSvg(baseDescriptor(START_FEN), { geometry, t: 0, coordinates: false }),
+    ).not.toContain("<text");
+  });
+
+  it("draws 8 rank labels and 8 file labels outside the board when coordinates: true", () => {
+    const svg = renderBoardSvg(baseDescriptor(START_FEN), { geometry, t: 0, coordinates: true });
+    const labels = [...svg.matchAll(/<text[^>]*>([^<]+)<\/text>/g)].map((m) => m[1]);
+    expect(labels).toHaveLength(16);
+    expect(labels.filter((l) => /^[1-8]$/.test(l!))).toHaveLength(8);
+    expect(labels.filter((l) => /^[a-h]$/.test(l!))).toHaveLength(8);
+  });
+
+  it("flips coordinate label order with orientation, matching the flipped board", () => {
+    const whiteGeometry = createBoardGeometry({ x: 0, y: 0, size: 800, orientation: "white" });
+    const blackGeometry = createBoardGeometry({ x: 0, y: 0, size: 800, orientation: "black" });
+    const descriptor: SceneDescriptor = { position: { fen: START_FEN, orientation: "white" } };
+
+    const whiteSvg = renderBoardSvg(descriptor, {
+      geometry: whiteGeometry,
+      t: 0,
+      coordinates: true,
+    });
+    const blackSvg = renderBoardSvg(descriptor, {
+      geometry: blackGeometry,
+      t: 0,
+      coordinates: true,
+    });
+
+    // Labels are emitted in a fixed rank/file loop order regardless of
+    // orientation — only their x/y position changes — so sort by visual
+    // position (y for ranks top-to-bottom, x for files left-to-right)
+    // rather than relying on document order.
+    const labelsByPosition = (svg: string, pattern: RegExp, axis: "x" | "y"): string[] =>
+      [...svg.matchAll(pattern)]
+        .map((m) => ({ label: m[3]!, pos: Number(m[axis === "x" ? 1 : 2]) }))
+        .sort((a, b) => a.pos - b.pos)
+        .map((entry) => entry.label);
+
+    const rankPattern = /<text x="([-\d.]+)" y="([-\d.]+)"[^>]*>([1-8])<\/text>/g;
+    const filePattern = /<text x="([-\d.]+)" y="([-\d.]+)"[^>]*>([a-h])<\/text>/g;
+
+    // White orientation: rank 8 at the top going down to rank 1; files a->h
+    // left to right. Black orientation flips both.
+    expect(labelsByPosition(whiteSvg, rankPattern, "y")).toEqual([
+      "8",
+      "7",
+      "6",
+      "5",
+      "4",
+      "3",
+      "2",
+      "1",
+    ]);
+    expect(labelsByPosition(whiteSvg, filePattern, "x")).toEqual([
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+      "g",
+      "h",
+    ]);
+    expect(labelsByPosition(blackSvg, rankPattern, "y")).toEqual([
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+    ]);
+    expect(labelsByPosition(blackSvg, filePattern, "x")).toEqual([
+      "h",
+      "g",
+      "f",
+      "e",
+      "d",
+      "c",
+      "b",
+      "a",
+    ]);
+  });
+
+  it("keeps coordinate labels outside the board's own bounding box", () => {
+    const svg = renderBoardSvg(baseDescriptor(START_FEN), { geometry, t: 0, coordinates: true });
+    // geometry here is { x: 0, y: 0, size: 800 } — rank labels (digits) sit
+    // left of x=0, file labels (letters) sit below y=800.
+    const rankLabelXs = [
+      ...svg.matchAll(/<text x="([-\d.]+)" y="[-\d.]+"[^>]*>[1-8]<\/text>/g),
+    ].map((m) => Number(m[1]));
+    const fileLabelYs = [
+      ...svg.matchAll(/<text x="[-\d.]+" y="([-\d.]+)"[^>]*>[a-h]<\/text>/g),
+    ].map((m) => Number(m[1]));
+    expect(rankLabelXs).toHaveLength(8);
+    expect(fileLabelYs).toHaveLength(8);
+    expect(rankLabelXs.every((x) => x < 0)).toBe(true);
+    expect(fileLabelYs.every((y) => y > 800)).toBe(true);
+  });
 });
 
 describe("renderOverlayHtml", () => {

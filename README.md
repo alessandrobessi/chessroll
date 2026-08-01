@@ -136,7 +136,7 @@ Options:
   --multipv <n>                  engine MultiPV (default 1; brilliant auto-raises to >= 2)
   --countdown <seconds>          puzzle/blunder/brilliant solve countdown (default 5)
   --show-eval / --no-eval         reveal the evaluation at payoff (default hidden)
-  --coordinates / --no-coordinates board coordinates (not yet drawn — accepted, not visual yet)
+  --coordinates / --no-coordinates external file/rank labels outside the board (default hidden)
   --keep-temp                      keep the temporary frame directory
   --no-cache                        bypass the analysis cache
   --verbose / --quiet

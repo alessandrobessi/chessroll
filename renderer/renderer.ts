@@ -25,7 +25,11 @@ function main(): void {
   window.renderAtTime = (t: number) => {
     const descriptor = stateAtTime(timeline, t);
     const geometry = defaultBoardGeometry(descriptor.position.orientation);
-    boardRoot.innerHTML = renderBoardSvg(descriptor, { geometry, t });
+    boardRoot.innerHTML = renderBoardSvg(descriptor, {
+      geometry,
+      t,
+      coordinates: timeline.showCoordinates,
+    });
     overlayRoot.innerHTML = renderOverlayHtml(descriptor);
   };
 

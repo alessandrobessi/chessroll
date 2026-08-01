@@ -189,6 +189,8 @@ export interface BrilliantOptions {
   showEval: boolean;
   orientation?: Side;
   leadInPlies?: number;
+  /** Draw file/rank labels in the board's outer margin. Default false. */
+  coordinates?: boolean;
 }
 
 /**
@@ -324,5 +326,5 @@ export function buildBrilliantStory(
   }
   push(PAYOFF_SECONDS, payoff);
 
-  return createTimeline(segments);
+  return createTimeline(segments, { showCoordinates: options.coordinates });
 }

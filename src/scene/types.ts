@@ -57,4 +57,6 @@ export interface SceneSegment {
 export interface SceneTimeline {
   duration: number;
   segments: SceneSegment[];
+  /** Draw file/rank labels in the board's outer margin. Default false. */
+  showCoordinates?: boolean;
 }

@@ -5,9 +5,40 @@ import { renderArrow, type ArrowElement } from "./arrows.js";
 import { squareColor, squareToPoint, squareToRect, type BoardGeometry } from "./geometry.js";
 import type { MoveAnimation } from "./moves.js";
 import { pieceTypeFromSymbol, renderPiece, type Piece } from "./pieces.js";
-import { COLORS } from "./theme.js";
+import { COLORS, FONT_FAMILY } from "./theme.js";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
+
+/**
+ * Rank/file labels drawn outside the 8x8 grid (in the board's own margin,
+ * never overlapping a square) — "external" coordinates, as opposed to the
+ * small in-corner style some sites draw on the edge squares themselves.
+ * Positions are derived from squareToRect/squareToPoint rather than
+ * re-deriving orientation logic here, so flipping the board (black
+ * orientation) automatically flips the labels too.
+ */
+function renderCoordinates(geometry: BoardGeometry): string {
+  const fontSize = Math.round(geometry.squareSize * 0.22);
+  const rankLabelX = geometry.x - fontSize * 0.9;
+  const fileLabelY = geometry.y + geometry.size + fontSize * 1.1;
+
+  let out = "";
+  for (let rank = 1; rank <= 8; rank++) {
+    const square = `a${rank}` as Square;
+    const y = squareToPoint(square, geometry).y;
+    out +=
+      `<text x="${rankLabelX}" y="${y}" font-family="${FONT_FAMILY}" font-size="${fontSize}" ` +
+      `font-weight="600" fill="${COLORS.secondary}" text-anchor="middle" dominant-baseline="central">${rank}</text>`;
+  }
+  for (const file of FILES) {
+    const square = `${file}1` as Square;
+    const x = squareToPoint(square, geometry).x;
+    out +=
+      `<text x="${x}" y="${fileLabelY}" font-family="${FONT_FAMILY}" font-size="${fontSize}" ` +
+      `font-weight="600" fill="${COLORS.secondary}" text-anchor="middle" dominant-baseline="hanging">${file}</text>`;
+  }
+  return out;
+}
 
 function renderSquares(geometry: BoardGeometry): string {
   let out = "";
@@ -145,18 +176,21 @@ export interface RenderOptions {
   geometry: BoardGeometry;
   /** Current timeline timestamp, used only to interpolate moveAnimation progress. */
   t: number;
+  /** Draw file/rank labels in the board's outer margin. Default false. */
+  coordinates?: boolean;
 }
 
 /** Assembles the full board SVG fragment (squares, highlights, pieces, arrows). */
 export function renderBoardSvg(descriptor: SceneDescriptor, options: RenderOptions): string {
-  const { geometry, t } = options;
+  const { geometry, t, coordinates } = options;
   const skip = squaresToSkip(descriptor.moveAnimation);
   return (
     renderSquares(geometry) +
     renderHighlights(descriptor.highlights, geometry) +
     renderStaticPieces(descriptor.position.fen, geometry, skip) +
     renderMovingPieces(descriptor.moveAnimation, t, geometry) +
-    renderArrows(descriptor.arrows, geometry)
+    renderArrows(descriptor.arrows, geometry) +
+    (coordinates ? renderCoordinates(geometry) : "")
   );
 }
 

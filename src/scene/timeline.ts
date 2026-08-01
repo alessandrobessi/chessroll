@@ -14,7 +14,10 @@ export function phase(start: number, length: number, state: SceneDescriptor): Sc
  * gapless (segment[i].end === segment[i + 1].start) — scene/state.ts's
  * lookup assumes this invariant.
  */
-export function createTimeline(segments: SceneSegment[]): SceneTimeline {
+export function createTimeline(
+  segments: SceneSegment[],
+  options: { showCoordinates?: boolean } = {},
+): SceneTimeline {
   if (segments.length === 0) {
     throw new StoryConstructionError("A scene timeline needs at least one segment");
   }
@@ -29,5 +32,5 @@ export function createTimeline(segments: SceneSegment[]): SceneTimeline {
     }
   }
   const last = segments[segments.length - 1]!;
-  return { duration: last.end, segments };
+  return { duration: last.end, segments, showCoordinates: options.showCoordinates };
 }

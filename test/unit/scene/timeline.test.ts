@@ -37,4 +37,11 @@ describe("createTimeline", () => {
     const gap = [phase(0, 1, descriptor()), phase(1.5, 1, descriptor())];
     expect(() => createTimeline(gap)).toThrow(StoryConstructionError);
   });
+
+  it("leaves showCoordinates undefined by default and threads it through when passed", () => {
+    const segments = [phase(0, 1, descriptor())];
+    expect(createTimeline(segments).showCoordinates).toBeUndefined();
+    expect(createTimeline(segments, { showCoordinates: true }).showCoordinates).toBe(true);
+    expect(createTimeline(segments, { showCoordinates: false }).showCoordinates).toBe(false);
+  });
 });

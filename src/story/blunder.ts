@@ -117,6 +117,8 @@ export interface BlunderOptions {
   showEval: boolean;
   orientation?: Side;
   leadInPlies?: number;
+  /** Draw file/rank labels in the board's outer margin. Default false. */
+  coordinates?: boolean;
 }
 
 function replayTopPvMove(fen: string, pv: string[]): Ply {
@@ -225,5 +227,5 @@ export function buildBlunderStory(
     evaluation: swingEvaluation,
   });
 
-  return createTimeline(segments);
+  return createTimeline(segments, { showCoordinates: options.coordinates });
 }
