@@ -5,9 +5,10 @@ import { AnalysisCache } from "./engine/cache.js";
 import { analyzePosition } from "./engine/analysis.js";
 import { StockfishEngine } from "./engine/stockfish.js";
 import type { Side } from "./chess/types.js";
+import { analyzeGame } from "./engine/analysis.js";
 import { buildPuzzleStory } from "./story/puzzle.js";
+import { buildBlunderStory, selectBlunder } from "./story/blunder.js";
 import type { SceneTimeline } from "./scene/types.js";
-import { UnexpectedError } from "./utils/errors.js";
 import { findExecutable } from "./utils/process.js";
 import { createTempDir } from "./utils/temp.js";
 import { launchRenderer } from "./video/browser.js";
@@ -57,9 +58,23 @@ async function buildTimeline(
         orientation,
       });
     }
-    case "blunder":
-      // Wired up once src/story/blunder.ts exists.
-      throw new UnexpectedError('"blunder" template is not wired into renderVideo() yet');
+    case "blunder": {
+      const analyses = await analyzeGame(engine, options.game, {
+        depth: options.depth,
+        nodes: options.nodes,
+        cache,
+        useCache: options.cache,
+      });
+      const candidate = selectBlunder(options.game, analyses, {
+        moveOverride: options.moveOverride,
+      });
+      const orientation = options.orientation === "auto" ? undefined : options.orientation;
+      return buildBlunderStory(options.game, candidate, {
+        countdownSeconds: options.countdownSeconds,
+        showEval: options.showEval,
+        orientation,
+      });
+    }
   }
 }
 

@@ -21,10 +21,18 @@ program
   .name("chessroll")
   .description("Turn PGN/FEN chess content into deterministic short-form videos")
   .version("0.0.0")
-  .argument("[input]", "path to a .fen file")
-  .option("--fen <fen>", "inline FEN string, instead of an input file")
+  .argument("[input]", "path to a .fen file (puzzle) or .pgn file (blunder)")
+  .option("--fen <fen>", "inline FEN string, instead of an input file (puzzle only)")
   .option("-o, --output <path>", "output MP4 path")
-  .option("--template <name>", 'content template (only "puzzle" is available in this build)')
+  .option(
+    "--template <name>",
+    'content template: "puzzle" (default, needs FEN) or "blunder" (needs PGN)',
+  )
+  .option(
+    "--move <n>",
+    "1-based ply to force as the blunder, instead of auto-detecting (blunder only)",
+    parseIntArg("--move"),
+  )
   .option("--orientation <side>", "white | black | auto")
   .option("--fps <n>", "frames per second", parseIntArg("--fps"))
   .option("--width <px>", "output width", parseIntArg("--width"))
@@ -57,6 +65,7 @@ program
       fen: cliOptions.fen as string | undefined,
       output: cliOptions.output as string | undefined,
       template: cliOptions.template as string | undefined,
+      move: cliOptions.move as number | undefined,
       orientation: cliOptions.orientation as "white" | "black" | "auto" | undefined,
       fps: cliOptions.fps as number | undefined,
       width: cliOptions.width as number | undefined,
