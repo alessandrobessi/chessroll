@@ -5,7 +5,11 @@ import { cueForPly, type AudioCue } from "../audio/timeline.js";
 import { applyUciMove } from "../chess/game.js";
 import type { ChessGame, Ply, Side } from "../chess/types.js";
 import type { PositionAnalysis } from "../engine/analysis.js";
-import { formatEvaluation, moverComparableValue } from "../engine/normalize.js";
+import {
+  evaluationBarFraction,
+  formatEvaluation,
+  moverComparableValue,
+} from "../engine/normalize.js";
 import { createTimeline, phase } from "../scene/timeline.js";
 import type { SceneDescriptor, SceneSegment, SceneTimeline } from "../scene/types.js";
 import { StoryConstructionError } from "../utils/errors.js";
@@ -329,6 +333,7 @@ export function buildBrilliantStory(
     payoff.evaluation = {
       display: formatEvaluation(candidate.afterAnalysis.score),
       perspective: "white",
+      barFraction: evaluationBarFraction(candidate.afterAnalysis.score),
     };
   }
   push(PAYOFF_SECONDS, payoff);

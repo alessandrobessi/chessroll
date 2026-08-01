@@ -4,7 +4,11 @@ import { cueForPly, type AudioCue } from "../audio/timeline.js";
 import { applyUciMove } from "../chess/game.js";
 import type { ChessGame, Ply, Side } from "../chess/types.js";
 import type { PositionAnalysis } from "../engine/analysis.js";
-import { formatEvaluation, moverComparableValue } from "../engine/normalize.js";
+import {
+  evaluationBarFraction,
+  formatEvaluation,
+  moverComparableValue,
+} from "../engine/normalize.js";
 import { createTimeline, phase } from "../scene/timeline.js";
 import type {
   HighlightElement,
@@ -157,7 +161,11 @@ export function buildBlunderStory(
 
   const punishment = replayTopPvMove(candidate.ply.fenAfter, candidate.afterAnalysis.pv);
   const swingEvaluation = options.showEval
-    ? { display: formatEvaluation(candidate.afterAnalysis.score), perspective: "white" as const }
+    ? {
+        display: formatEvaluation(candidate.afterAnalysis.score),
+        perspective: "white" as const,
+        barFraction: evaluationBarFraction(candidate.afterAnalysis.score),
+      }
     : undefined;
 
   const segments: SceneSegment[] = [];

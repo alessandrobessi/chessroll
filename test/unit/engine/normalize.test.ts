@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  evaluationBarFraction,
   formatEvaluation,
   moverComparableValue,
   normalizeScore,
@@ -87,5 +88,28 @@ describe("moverComparableValue", () => {
       "black",
     );
     expect(forMoverBlack).toBe(-forMoverWhite);
+  });
+});
+
+describe("evaluationBarFraction", () => {
+  it("returns exactly 0.5 for a dead-even position", () => {
+    expect(evaluationBarFraction({ type: "cp", value: 0, perspective: "white" })).toBe(0.5);
+  });
+
+  it("grows toward 1 as White's advantage grows, and toward 0 as Black's does", () => {
+    const slight = evaluationBarFraction({ type: "cp", value: 50, perspective: "white" });
+    const large = evaluationBarFraction({ type: "cp", value: 400, perspective: "white" });
+    expect(slight).toBeGreaterThan(0.5);
+    expect(large).toBeGreaterThan(slight);
+    expect(large).toBeLessThan(1);
+
+    const slightBlack = evaluationBarFraction({ type: "cp", value: -50, perspective: "white" });
+    expect(slightBlack).toBeLessThan(0.5);
+    expect(slightBlack).toBeCloseTo(1 - slight, 10); // symmetric around 0.5
+  });
+
+  it("saturates fully toward whichever side delivers mate, never a fake mid-range value", () => {
+    expect(evaluationBarFraction({ type: "mate", value: 3, perspective: "white" })).toBe(1);
+    expect(evaluationBarFraction({ type: "mate", value: -2, perspective: "white" })).toBe(0);
   });
 });

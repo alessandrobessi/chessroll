@@ -91,7 +91,7 @@ describe("buildPuzzleStory", () => {
     const payoffStart = 1 + 1.5 + 5 + 1 + 1.5 + 6; // + MOVE + CONTINUATION
     const state = stateAtTime(withEval, payoffStart);
     expect(state.moveLabel?.text).toBe("Rh8#");
-    expect(state.evaluation).toEqual({ display: "M2", perspective: "white" });
+    expect(state.evaluation).toEqual({ display: "M2", perspective: "white", barFraction: 1 });
 
     const withoutEval = buildPuzzleStory(PUZZLE_FEN, "white", PUZZLE_ANALYSIS, {
       countdownSeconds: 5,

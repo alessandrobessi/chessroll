@@ -5,7 +5,7 @@ import { cueForPly, type AudioCue } from "../audio/timeline.js";
 import { applyUciMove } from "../chess/game.js";
 import type { Ply, Side } from "../chess/types.js";
 import type { PositionAnalysis } from "../engine/analysis.js";
-import { formatEvaluation } from "../engine/normalize.js";
+import { evaluationBarFraction, formatEvaluation } from "../engine/normalize.js";
 import { createTimeline, phase } from "../scene/timeline.js";
 import type { SceneDescriptor, SceneSegment, SceneTimeline } from "../scene/types.js";
 import { StoryConstructionError } from "../utils/errors.js";
@@ -136,7 +136,11 @@ export function buildPuzzleStory(
     moveLabel: { text: finalPly.san, emphasis: true },
   };
   if (options.showEval) {
-    payoff.evaluation = { display: formatEvaluation(analysis.score), perspective: "white" };
+    payoff.evaluation = {
+      display: formatEvaluation(analysis.score),
+      perspective: "white",
+      barFraction: evaluationBarFraction(analysis.score),
+    };
   }
   push(PAYOFF_SECONDS, payoff);
 

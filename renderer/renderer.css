@@ -73,11 +73,25 @@ body {
   font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
+  line-height: 1.15;
+}
+
+/*
+ * Used for persistent, potentially-long headers (replay/game60's
+ * "Name (Rating) vs Name (Rating)") — full-size .title is tuned for a
+ * short one-off hook phrase (e.g. "FIND THE BEST MOVE") and reliably
+ * wraps to two lines for a name+rating matchup at 1080px width, which
+ * collided with .subtitle below it. Compact keeps most long matchups on
+ * one line, and .subtitle's own top already has enough clearance even if
+ * it does wrap.
+ */
+.title--compact {
+  font-size: 40px;
 }
 
 .subtitle,
 .prompt {
-  top: 220px;
+  top: 240px;
   font-size: 36px;
   font-weight: 500;
   color: var(--color-secondary);

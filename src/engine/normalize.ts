@@ -28,6 +28,19 @@ export function formatEvaluation(score: EngineScore): string {
 }
 
 /**
+ * Fraction (0-1) of an evaluation bar that should read as White's — a
+ * smooth, saturating curve (not linear), so a pawn matters far more near
+ * an even position than in an already-decided one. Mate scores saturate
+ * fully toward whichever side delivers the mate, matching formatEvaluation
+ * never coercing a mate into a plain centipawn number.
+ */
+export function evaluationBarFraction(score: EngineScore): number {
+  if (score.type === "mate") return score.value >= 0 ? 1 : 0;
+  const pawns = score.value / 100;
+  return 1 / (1 + Math.pow(10, -pawns / 4));
+}
+
+/**
  * Mate scores are never treated as ordinary centipawn values for DISPLAY
  * (see formatEvaluation above) — but detectors (blunder, brilliant) need
  * to rank/threshold cp and mate swings on one internal scale. This constant

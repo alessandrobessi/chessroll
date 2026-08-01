@@ -12,12 +12,16 @@ export interface BoardPosition {
 export interface TextElement {
   text: string;
   emphasis?: boolean;
+  /** Smaller variant for persistent, potentially-long text (e.g. a "Name (Rating) vs Name (Rating)" header). */
+  compact?: boolean;
 }
 
 export interface EvaluationElement {
   /** Pre-formatted for display: "+0.3", "-4.2", "M3", "-M2". */
   display: string;
   perspective: "white";
+  /** Fraction (0-1) of the evaluation bar that should read as White's — see evaluationBarFraction(). */
+  barFraction: number;
 }
 
 export interface HighlightElement {

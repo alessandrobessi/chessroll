@@ -1,10 +1,11 @@
 import { toMoveAnimation } from "../board/moves.js";
 import { cueForPly, type AudioCue } from "../audio/timeline.js";
-import type { ChessGame, GameMetadata, Ply, Side } from "../chess/types.js";
+import type { ChessGame, Side } from "../chess/types.js";
 import type { PositionAnalysis } from "../engine/analysis.js";
-import { formatEvaluation, moverComparableValue } from "../engine/normalize.js";
+import { evaluationBarFraction, formatEvaluation } from "../engine/normalize.js";
 import { createTimeline, phase } from "../scene/timeline.js";
 import type { SceneDescriptor, SceneSegment, SceneTimeline } from "../scene/types.js";
+import { classifyMoveCategory, headerFor, moveNumberLabel, type MoveCategory } from "./shared.js";
 
 const INTRO_SECONDS = 1.5;
 const OUTRO_SECONDS = 3.0;
@@ -17,74 +18,21 @@ const SWING_PAUSE_SECONDS = 0.6;
 const CRITICAL_SECONDS = 1.2;
 const CRITICAL_PAUSE_SECONDS = 1.0;
 
-/** "Large eval swing" (BLUEPRINT.md §19) — matches brilliant's own advantage threshold. */
-const SWING_THRESHOLD_CP = 150;
-/** "Critical move" — matches blunder's own severity threshold. */
-const CRITICAL_THRESHOLD_CP = 300;
+const MOVE_SECONDS_BY_CATEGORY: Record<MoveCategory, number> = {
+  quiet: QUIET_SECONDS,
+  capture: CAPTURE_SECONDS,
+  check: CHECK_SECONDS,
+  swing: SWING_SECONDS,
+  critical: CRITICAL_SECONDS,
+};
 
-type MoveCategory = "quiet" | "capture" | "check" | "swing" | "critical";
-
-interface MoveImportance {
-  category: MoveCategory;
-  moveSeconds: number;
-  pauseSeconds: number;
-  /** Mover-relative eval delta (positive = good for whoever just moved). Only meaningful for swing/critical. */
-  swing: number;
-}
-
-/**
- * BLUEPRINT.md §19/ROADMAP.md §14's importance-weighted timing heuristic:
- * quiet < capture < check < large swing (+pause) < critical (+pause,
- * annotated). A mating move is always critical regardless of the computed
- * swing magnitude — chess.js may not report a huge mate-scale delta the
- * same way a cp swing would, but delivering mate is unambiguously the most
- * important thing that can happen on a move.
- */
-function classifyMove(ply: Ply, before: PositionAnalysis, after: PositionAnalysis): MoveImportance {
-  const swing =
-    moverComparableValue(after.score, ply.side) - moverComparableValue(before.score, ply.side);
-
-  if (ply.flags.mate || swing >= CRITICAL_THRESHOLD_CP || swing <= -CRITICAL_THRESHOLD_CP) {
-    return {
-      category: "critical",
-      moveSeconds: CRITICAL_SECONDS,
-      pauseSeconds: CRITICAL_PAUSE_SECONDS,
-      swing,
-    };
-  }
-  if (Math.abs(swing) >= SWING_THRESHOLD_CP) {
-    return {
-      category: "swing",
-      moveSeconds: SWING_SECONDS,
-      pauseSeconds: SWING_PAUSE_SECONDS,
-      swing,
-    };
-  }
-  if (ply.flags.check) {
-    return { category: "check", moveSeconds: CHECK_SECONDS, pauseSeconds: 0, swing };
-  }
-  if (ply.flags.capture) {
-    return { category: "capture", moveSeconds: CAPTURE_SECONDS, pauseSeconds: 0, swing };
-  }
-  return { category: "quiet", moveSeconds: QUIET_SECONDS, pauseSeconds: 0, swing };
-}
-
-/** chess.js defaults an unset PGN header to the literal string "?" — treat that as absent, same as undefined. */
-function formatPlayer(name: string | undefined, elo: number | undefined, fallback: string): string {
-  const label = name && name !== "?" ? name : fallback;
-  return elo !== undefined ? `${label} (${elo})` : label;
-}
-
-function headerFor(metadata: GameMetadata): { title: string; subtitle?: string } {
-  const white = formatPlayer(metadata.white, metadata.whiteElo, "White");
-  const black = formatPlayer(metadata.black, metadata.blackElo, "Black");
-  const subtitle = metadata.event && metadata.event !== "?" ? metadata.event : undefined;
-  return { title: `${white} vs ${black}`, subtitle };
-}
-
-function moveNumberLabel(ply: Ply): string {
-  return ply.side === "white" ? `${ply.moveNumber}.` : `${ply.moveNumber}...`;
-}
+const PAUSE_SECONDS_BY_CATEGORY: Record<MoveCategory, number> = {
+  quiet: 0,
+  capture: 0,
+  check: 0,
+  swing: SWING_PAUSE_SECONDS,
+  critical: CRITICAL_PAUSE_SECONDS,
+};
 
 export interface ReplayOptions {
   showEval: boolean;
@@ -125,7 +73,7 @@ export function buildReplayStory(
   // INTRO — player header, starting position.
   push(INTRO_SECONDS, {
     position: { fen: game.initialFen, orientation },
-    title: { text: header.title },
+    title: { text: header.title, compact: true },
     subtitle: headerText,
   });
 
@@ -133,30 +81,36 @@ export function buildReplayStory(
     const ply = game.plies[i]!;
     const before = analyses[i]!;
     const after = analyses[i + 1]!;
-    const importance = classifyMove(ply, before, after);
+    const { category, swing } = classifyMoveCategory(ply, before, after);
+    const moveSeconds = MOVE_SECONDS_BY_CATEGORY[category];
+    const pauseSeconds = PAUSE_SECONDS_BY_CATEGORY[category];
     const label = `${moveNumberLabel(ply)} ${ply.san}`;
     const evaluation: SceneDescriptor["evaluation"] = options.showEval
-      ? { display: formatEvaluation(after.score), perspective: "white" }
+      ? {
+          display: formatEvaluation(after.score),
+          perspective: "white",
+          barFraction: evaluationBarFraction(after.score),
+        }
       : undefined;
 
     // THE MOVE — always the ordinary label; the annotation (if any)
     // appears in the pause below, once the swing is fully "landed".
-    push(importance.moveSeconds, {
+    push(moveSeconds, {
       position: { fen: ply.fenBefore, orientation },
-      moveAnimation: toMoveAnimation(ply, { start: t, end: t + importance.moveSeconds }),
-      title: { text: header.title },
+      moveAnimation: toMoveAnimation(ply, { start: t, end: t + moveSeconds }),
+      title: { text: header.title, compact: true },
       subtitle: headerText,
       moveLabel: { text: label },
       evaluation,
     });
     cues.push({ time: t, type: cueForPly(ply) });
 
-    if (importance.pauseSeconds > 0) {
-      const isCritical = importance.category === "critical";
-      const annotation = isCritical ? (importance.swing >= 0 ? "!!" : "??") : "";
-      push(importance.pauseSeconds, {
+    if (pauseSeconds > 0) {
+      const isCritical = category === "critical";
+      const annotation = isCritical ? (swing >= 0 ? "!!" : "??") : "";
+      push(pauseSeconds, {
         position: { fen: ply.fenAfter, orientation },
-        title: { text: header.title },
+        title: { text: header.title, compact: true },
         subtitle: headerText,
         moveLabel: { text: `${label}${annotation}`, emphasis: isCritical },
         evaluation,

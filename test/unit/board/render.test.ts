@@ -201,6 +201,79 @@ describe("renderBoardSvg", () => {
     expect(rankLabelXs.every((x) => x < 0)).toBe(true);
     expect(fileLabelYs.every((y) => y > 800)).toBe(true);
   });
+
+  it("renders no evaluation bar when evaluation is absent", () => {
+    const svg = renderBoardSvg(baseDescriptor(START_FEN), { geometry, t: 0 });
+    expect(svg).not.toContain('width="16"');
+  });
+
+  it("renders an evaluation bar flush against the board's left edge when evaluation is present", () => {
+    const descriptor: SceneDescriptor = {
+      ...baseDescriptor(START_FEN),
+      evaluation: { display: "+3.0", perspective: "white", barFraction: 0.9 },
+    };
+    const svg = renderBoardSvg(descriptor, { geometry, t: 0 });
+    // geometry is { x: 0, y: 0, size: 800 } — the bar sits entirely left of x=0.
+    const barRects = [...svg.matchAll(/<rect x="(-[\d.]+)" y="[-\d.]+" width="16"/g)];
+    expect(barRects.length).toBeGreaterThanOrEqual(2); // top + bottom fill segments
+    expect(barRects.every((m) => Number(m[1]) < 0)).toBe(true);
+  });
+
+  it("fills the bottom of the bar for whichever side sits at the board's bottom", () => {
+    const evaluation = { display: "+5.0", perspective: "white" as const, barFraction: 0.95 };
+
+    // White orientation: White sits at the bottom -> mostly white winning
+    // shows a tall WHITE rect anchored at the bar's bottom.
+    const whiteGeometry = createBoardGeometry({ x: 0, y: 0, size: 800, orientation: "white" });
+    const whiteSvg = renderBoardSvg(
+      { ...baseDescriptor(START_FEN), evaluation },
+      { geometry: whiteGeometry, t: 0 },
+    );
+    const whiteBottomRect = [
+      ...whiteSvg.matchAll(
+        /<rect x="[-\d.]+" y="([\d.]+)" width="16" height="([\d.]+)" fill="#FFFFFF"/g,
+      ),
+    ][0]!;
+    expect(Number(whiteBottomRect[2])).toBeGreaterThan(800 * 0.9); // tall — 95% white
+
+    // Black orientation: Black sits at the bottom now, so the SAME
+    // White-favoring evaluation instead fills the bar's TOP with white.
+    const blackGeometry = createBoardGeometry({ x: 0, y: 0, size: 800, orientation: "black" });
+    const blackSvg = renderBoardSvg(
+      {
+        ...baseDescriptor(START_FEN),
+        evaluation,
+        position: { fen: START_FEN, orientation: "black" },
+      },
+      { geometry: blackGeometry, t: 0 },
+    );
+    const blackTopRect = [
+      ...blackSvg.matchAll(
+        /<rect x="[-\d.]+" y="([\d.]+)" width="16" height="([\d.]+)" fill="#FFFFFF"/g,
+      ),
+    ][0]!;
+    expect(Number(blackTopRect[1])).toBeCloseTo(0, 5); // starts at the very top
+    expect(Number(blackTopRect[2])).toBeGreaterThan(800 * 0.9);
+  });
+
+  it("shifts rank coordinate labels further left to avoid the evaluation bar when both are shown", () => {
+    const withoutBar = renderBoardSvg(baseDescriptor(START_FEN), {
+      geometry,
+      t: 0,
+      coordinates: true,
+    });
+    const withBar = renderBoardSvg(
+      {
+        ...baseDescriptor(START_FEN),
+        evaluation: { display: "+1.0", perspective: "white", barFraction: 0.6 },
+      },
+      { geometry, t: 0, coordinates: true },
+    );
+    const rankLabelX = (svg: string): number =>
+      Number(/<text x="(-?[\d.]+)" y="[-\d.]+"[^>]*>1<\/text>/.exec(svg)![1]);
+    // Further left (more negative) once the bar reserves its own space.
+    expect(rankLabelX(withBar)).toBeLessThan(rankLabelX(withoutBar));
+  });
 });
 
 describe("renderOverlayHtml", () => {
@@ -210,7 +283,7 @@ describe("renderOverlayHtml", () => {
       title: { text: "FIND THE BEST MOVE" },
       subtitle: { text: "WHITE TO MOVE" },
       countdown: { value: 3 },
-      evaluation: { display: "M3", perspective: "white" },
+      evaluation: { display: "M3", perspective: "white", barFraction: 1 },
       moveLabel: { text: "Rh8#" },
     };
     const html = renderOverlayHtml(descriptor);

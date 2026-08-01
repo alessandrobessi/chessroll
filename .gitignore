@@ -6,3 +6,4 @@ out/
 *.log
 .DS_Store
 setup_local.sh
+projects/

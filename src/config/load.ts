@@ -7,9 +7,15 @@ import { CliArgumentError, InputNotFoundError } from "../utils/errors.js";
 import { defaultOutputPath } from "../utils/paths.js";
 import { DEFAULTS } from "./defaults.js";
 
-export type TemplateName = "puzzle" | "blunder" | "brilliant" | "replay";
+export type TemplateName = "puzzle" | "blunder" | "brilliant" | "replay" | "game60";
 
-const IMPLEMENTED_TEMPLATES: readonly TemplateName[] = ["puzzle", "blunder", "brilliant", "replay"];
+const IMPLEMENTED_TEMPLATES: readonly TemplateName[] = [
+  "puzzle",
+  "blunder",
+  "brilliant",
+  "replay",
+  "game60",
+];
 
 export interface CliFlags {
   input?: string;
@@ -28,6 +34,7 @@ export interface CliFlags {
   hash?: number;
   multipv?: number;
   countdown?: number;
+  target?: number;
   showEval?: boolean;
   coordinates?: boolean;
   sound?: boolean;
@@ -84,8 +91,18 @@ export interface ReplayRenderOptions extends CommonRenderOptions {
   game: ChessGame;
 }
 
+export interface Game60RenderOptions extends CommonRenderOptions {
+  template: "game60";
+  game: ChessGame;
+  targetSeconds: number;
+}
+
 export type RenderOptions =
-  PuzzleRenderOptions | BlunderRenderOptions | BrilliantRenderOptions | ReplayRenderOptions;
+  | PuzzleRenderOptions
+  | BlunderRenderOptions
+  | BrilliantRenderOptions
+  | ReplayRenderOptions
+  | Game60RenderOptions;
 
 function resolveTemplate(flags: CliFlags): TemplateName {
   const template = flags.template ?? "puzzle";
@@ -199,6 +216,16 @@ async function resolveReplayOptions(flags: CliFlags): Promise<ReplayRenderOption
   return { ...commonOptions(flags, output), template: "replay", game };
 }
 
+async function resolveGame60Options(flags: CliFlags): Promise<Game60RenderOptions> {
+  const { game, output } = await resolvePgnGame(flags, "game60");
+  return {
+    ...commonOptions(flags, output),
+    template: "game60",
+    game,
+    targetSeconds: flags.target ?? DEFAULTS.targetSeconds,
+  };
+}
+
 /** Merges CLI flags with defaults, validating cross-field constraints. */
 export async function resolveOptions(flags: CliFlags): Promise<RenderOptions> {
   const template = resolveTemplate(flags);
@@ -215,5 +242,7 @@ export async function resolveOptions(flags: CliFlags): Promise<RenderOptions> {
       return resolveBrilliantOptions(flags);
     case "replay":
       return resolveReplayOptions(flags);
+    case "game60":
+      return resolveGame60Options(flags);
   }
 }

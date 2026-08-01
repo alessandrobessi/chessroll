@@ -1,6 +1,11 @@
 import { Chess, type Square } from "chess.js";
 import { easeInOutCubic, lerp, progressOf } from "../scene/interpolation.js";
-import type { HighlightElement, SceneDescriptor, TextElement } from "../scene/types.js";
+import type {
+  EvaluationElement,
+  HighlightElement,
+  SceneDescriptor,
+  TextElement,
+} from "../scene/types.js";
 import { renderArrow, type ArrowElement } from "./arrows.js";
 import { squareColor, squareToPoint, squareToRect, type BoardGeometry } from "./geometry.js";
 import type { MoveAnimation } from "./moves.js";
@@ -9,6 +14,9 @@ import { COLORS, FONT_FAMILY } from "./theme.js";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
 
+/** Width the evaluation bar (+ its gap to the board) reserves in the left margin, when shown. */
+const EVAL_BAR_RESERVED_WIDTH = 29;
+
 /**
  * Rank/file labels drawn outside the 8x8 grid (in the board's own margin,
  * never overlapping a square) — "external" coordinates, as opposed to the
@@ -16,10 +24,14 @@ const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
  * Positions are derived from squareToRect/squareToPoint rather than
  * re-deriving orientation logic here, so flipping the board (black
  * orientation) automatically flips the labels too.
+ *
+ * `leftReserve` shifts the rank labels further left, out of the way of the
+ * evaluation bar (also left-of-board) when one is present — both features
+ * fit in the board's existing left margin without moving the board itself.
  */
-function renderCoordinates(geometry: BoardGeometry): string {
+function renderCoordinates(geometry: BoardGeometry, leftReserve: number): string {
   const fontSize = Math.round(geometry.squareSize * 0.22);
-  const rankLabelX = geometry.x - fontSize * 0.9;
+  const rankLabelX = geometry.x - leftReserve - fontSize * 0.9;
   const fileLabelY = geometry.y + geometry.size + fontSize * 1.1;
 
   let out = "";
@@ -38,6 +50,46 @@ function renderCoordinates(geometry: BoardGeometry): string {
       `font-weight="600" fill="${COLORS.secondary}" text-anchor="middle" dominant-baseline="hanging">${file}</text>`;
   }
   return out;
+}
+
+const EVAL_BAR_WIDTH = 16;
+const EVAL_BAR_GAP = 5;
+
+/**
+ * A vertical eval bar in the board's left margin, flush against the board
+ * edge — automatically shown whenever `descriptor.evaluation` is set, the
+ * same gating every template already uses for the numeric evaluation text,
+ * so this never leaks an answer during puzzle/blunder/brilliant's
+ * countdown (those templates simply never populate `evaluation` that
+ * early — see each builder's own SOLVE/COUNTDOWN phase).
+ *
+ * The portion representing whichever side sits at the *bottom* of the
+ * current board orientation grows from the bar's own bottom — matching
+ * the board's own visual "down is toward you" convention rather than
+ * always keying off White regardless of a flipped board.
+ */
+function renderEvaluationBar(
+  evaluation: EvaluationElement | undefined,
+  geometry: BoardGeometry,
+): string {
+  if (!evaluation) return "";
+  const x = geometry.x - EVAL_BAR_GAP - EVAL_BAR_WIDTH;
+  const y = geometry.y;
+  const height = geometry.size;
+
+  const bottomIsWhite = geometry.orientation === "white";
+  const bottomFraction = bottomIsWhite ? evaluation.barFraction : 1 - evaluation.barFraction;
+  const bottomHeight = height * bottomFraction;
+  const topHeight = height - bottomHeight;
+  const bottomColor = bottomIsWhite ? "#FFFFFF" : COLORS.primary;
+  const topColor = bottomIsWhite ? COLORS.primary : "#FFFFFF";
+
+  return (
+    `<rect x="${x}" y="${y}" width="${EVAL_BAR_WIDTH}" height="${topHeight}" fill="${topColor}" />` +
+    `<rect x="${x}" y="${y + topHeight}" width="${EVAL_BAR_WIDTH}" height="${bottomHeight}" fill="${bottomColor}" />` +
+    `<rect x="${x}" y="${y}" width="${EVAL_BAR_WIDTH}" height="${height}" fill="none" stroke="${COLORS.secondary}" stroke-width="1.5" />` +
+    `<line x1="${x}" y1="${y + height / 2}" x2="${x + EVAL_BAR_WIDTH}" y2="${y + height / 2}" stroke="${COLORS.secondary}" stroke-width="1" opacity="0.5" />`
+  );
 }
 
 function renderSquares(geometry: BoardGeometry): string {
@@ -184,13 +236,15 @@ export interface RenderOptions {
 export function renderBoardSvg(descriptor: SceneDescriptor, options: RenderOptions): string {
   const { geometry, t, coordinates } = options;
   const skip = squaresToSkip(descriptor.moveAnimation);
+  const coordinatesReserve = descriptor.evaluation ? EVAL_BAR_RESERVED_WIDTH : 0;
   return (
     renderSquares(geometry) +
     renderHighlights(descriptor.highlights, geometry) +
     renderStaticPieces(descriptor.position.fen, geometry, skip) +
     renderMovingPieces(descriptor.moveAnimation, t, geometry) +
     renderArrows(descriptor.arrows, geometry) +
-    (coordinates ? renderCoordinates(geometry) : "")
+    (coordinates ? renderCoordinates(geometry, coordinatesReserve) : "") +
+    renderEvaluationBar(descriptor.evaluation, geometry)
   );
 }
 
@@ -201,7 +255,8 @@ function escapeHtml(text: string): string {
 function textBlock(className: string, element: TextElement | undefined): string {
   if (!element) return "";
   const emphasisClass = element.emphasis ? ` ${className}--emphasis` : "";
-  return `<div class="${className}${emphasisClass}">${escapeHtml(element.text)}</div>`;
+  const compactClass = element.compact ? ` ${className}--compact` : "";
+  return `<div class="${className}${emphasisClass}${compactClass}">${escapeHtml(element.text)}</div>`;
 }
 
 /** Assembles the non-board overlay (title/prompt/countdown/evaluation/move label). */

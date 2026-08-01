@@ -21,12 +21,15 @@ program
   .name("chessroll")
   .description("Turn PGN/FEN chess content into deterministic short-form videos")
   .version("0.0.0")
-  .argument("[input]", "path to a .fen file (puzzle) or .pgn file (blunder, brilliant, replay)")
+  .argument(
+    "[input]",
+    "path to a .fen file (puzzle) or .pgn file (blunder, brilliant, replay, game60)",
+  )
   .option("--fen <fen>", "inline FEN string, instead of an input file (puzzle only)")
   .option("-o, --output <path>", "output MP4 path")
   .option(
     "--template <name>",
-    'content template: "puzzle" (default, needs FEN), "blunder", "brilliant", or "replay" (need PGN)',
+    'content template: "puzzle" (default, needs FEN), "blunder"/"brilliant"/"replay"/"game60" (need PGN)',
   )
   .option(
     "--move <n>",
@@ -45,8 +48,13 @@ program
   .option("--multipv <n>", "engine MultiPV", parseIntArg("--multipv"))
   .option(
     "--countdown <seconds>",
-    "puzzle/blunder/brilliant solve countdown (not used by replay)",
+    "puzzle/blunder/brilliant solve countdown (not used by replay/game60)",
     parseIntArg("--countdown"),
+  )
+  .option(
+    "--target <seconds>",
+    "game60's target duration in seconds (default 60; a target, not a hard cap)",
+    parseIntArg("--target"),
   )
   .option("--show-eval", "reveal the evaluation at payoff")
   .option("--no-eval", "never show the evaluation")
@@ -83,6 +91,7 @@ program
       hash: cliOptions.hash as number | undefined,
       multipv: cliOptions.multipv as number | undefined,
       countdown: cliOptions.countdown as number | undefined,
+      target: cliOptions.target as number | undefined,
       showEval,
       coordinates: cliOptions.coordinates as boolean | undefined,
       sound: cliOptions.sound as boolean | undefined,

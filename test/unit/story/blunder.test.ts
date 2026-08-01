@@ -172,7 +172,9 @@ describe("buildBlunderStory", () => {
       { square: candidate.ply.from, style: "origin" },
       { square: candidate.ply.to, style: "critical" },
     ]);
-    expect(state.evaluation).toEqual({ display: "+3.5", perspective: "white" });
+    expect(state.evaluation?.display).toBe("+3.5");
+    expect(state.evaluation?.perspective).toBe("white");
+    expect(state.evaluation?.barFraction).toBeCloseTo(0.8823, 3);
   });
 
   it("omits evaluation entirely when showEval is false", () => {

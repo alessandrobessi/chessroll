@@ -10,6 +10,7 @@ import { buildPuzzleStory } from "./story/puzzle.js";
 import { buildBlunderStory, selectBlunder } from "./story/blunder.js";
 import { buildBrilliantStory, selectBrilliantMove } from "./story/brilliant.js";
 import { buildReplayStory } from "./story/replay.js";
+import { buildGame60Story } from "./story/game60.js";
 import type { SceneTimeline } from "./scene/types.js";
 import { findExecutable } from "./utils/process.js";
 import { createTempDir } from "./utils/temp.js";
@@ -106,6 +107,21 @@ async function buildTimeline(
       });
       const orientation = options.orientation === "auto" ? undefined : options.orientation;
       return buildReplayStory(options.game, analyses, {
+        showEval: options.showEval,
+        orientation,
+        coordinates: options.coordinates,
+      });
+    }
+    case "game60": {
+      const analyses = await analyzeGame(engine, options.game, {
+        depth: options.depth,
+        nodes: options.nodes,
+        cache,
+        useCache: options.cache,
+      });
+      const orientation = options.orientation === "auto" ? undefined : options.orientation;
+      return buildGame60Story(options.game, analyses, {
+        targetSeconds: options.targetSeconds,
         showEval: options.showEval,
         orientation,
         coordinates: options.coordinates,

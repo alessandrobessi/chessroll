@@ -8,6 +8,7 @@ export const DEFAULTS = {
   hashMb: 128,
   multiPv: 1,
   countdownSeconds: 5,
+  targetSeconds: 60,
   showEval: false,
   coordinates: false,
   sound: true,

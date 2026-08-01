@@ -72,7 +72,7 @@ describe("resolveOptions", () => {
   });
 
   it("rejects an unimplemented --template", async () => {
-    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "game60" })).rejects.toThrow(
+    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "guess" })).rejects.toThrow(
       CliArgumentError,
     );
   });
@@ -115,6 +115,39 @@ describe("resolveOptions", () => {
     }
     expect(options.game.plies).toHaveLength(4);
     expect(options.output).toBe(join(dir, "game.mp4"));
+  });
+
+  it("rejects --fen for the game60 template", async () => {
+    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "game60" })).rejects.toThrow(
+      CliArgumentError,
+    );
+  });
+
+  it("rejects a .fen input for the game60 template", async () => {
+    await expect(resolveOptions({ input: "position.fen", template: "game60" })).rejects.toThrow(
+      CliArgumentError,
+    );
+  });
+
+  it("resolves a .pgn input for the game60 template, defaulting target to 60s", async () => {
+    const pgnPath = join(dir, "game.pgn");
+    await writeFile(pgnPath, "1. e4 e5 2. Nf3 Nc6 *", "utf8");
+    const options = await resolveOptions({ input: pgnPath, template: "game60" });
+    if (options.template !== "game60") {
+      throw new Error(`expected a game60 template, got "${options.template}"`);
+    }
+    expect(options.game.plies).toHaveLength(4);
+    expect(options.targetSeconds).toBe(60);
+  });
+
+  it("propagates a custom --target for game60", async () => {
+    const pgnPath = join(dir, "game.pgn");
+    await writeFile(pgnPath, "1. e4 e5 2. Nf3 Nc6 *", "utf8");
+    const options = await resolveOptions({ input: pgnPath, template: "game60", target: 30 });
+    if (options.template !== "game60") {
+      throw new Error(`expected a game60 template, got "${options.template}"`);
+    }
+    expect(options.targetSeconds).toBe(30);
   });
 
   it("rejects specifying both --depth and --nodes", async () => {
