@@ -77,10 +77,16 @@ export function buildPuzzleStory(
     subtitle: { text: `${sideToMove.toUpperCase()} TO MOVE` },
   });
 
-  // SOLVE — one 1-second segment per countdown tick; arrows/highlights/eval
-  // are simply never set on these descriptors.
+  // SOLVE — one 1-second segment per countdown tick. The side-to-move
+  // subtitle stays up through the whole solve window (not just the brief
+  // PROMPT phase) so it's legible to a viewer who wasn't watching from
+  // t=0; arrows/highlights/eval are simply never set on these descriptors.
   for (let remaining = options.countdownSeconds; remaining >= 1; remaining--) {
-    push(1, { position: { fen, orientation }, countdown: { value: remaining } });
+    push(1, {
+      position: { fen, orientation },
+      subtitle: { text: `${sideToMove.toUpperCase()} TO MOVE` },
+      countdown: { value: remaining },
+    });
   }
 
   // REVEAL — highlight + arrow appear, no piece motion yet.

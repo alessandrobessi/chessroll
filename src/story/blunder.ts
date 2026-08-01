@@ -15,8 +15,8 @@ import { StoryConstructionError } from "../utils/errors.js";
 
 const HOOK_SECONDS = 1.0;
 const LEAD_IN_PLY_SECONDS = 0.4;
+const BLUNDER_PLAY_SECONDS = 1.2;
 const FREEZE_SECONDS = 1.0;
-const BLUNDER_SECONDS = 1.2;
 const SWING_SECONDS = 1.5;
 const PUNISHMENT_SECONDS = 1.2;
 const PAYOFF_SECONDS = 3.0;
@@ -143,9 +143,17 @@ function replayTopPvMove(fen: string, pv: string[]): Ply {
 }
 
 /**
- * Builds the blunder timeline (BLUEPRINT.md §18): hook -> quick lead-in ->
- * freeze -> "spot the mistake?" -> countdown -> the blunder itself
- * animates -> evaluation swing -> punishment -> payoff.
+ * Builds the blunder timeline: hook -> quick lead-in -> the blunder move
+ * itself plays, presented like any other move (no flag, no emphasis) ->
+ * freeze on the resulting position -> "spot the mistake?" -> countdown ->
+ * reveal (the blunder's squares highlighted + evaluation swing) ->
+ * punishment -> payoff.
+ *
+ * This deliberately departs from a literal reading of BLUEPRINT.md §18's
+ * phase list ("freeze before blunder" / "blunder animation" as two
+ * separate later steps) — asking "can you spot the mistake?" before the
+ * mistake has even been played leaves nothing for the viewer to spot. The
+ * blunder has to be visible on screen before the question is asked.
  */
 export function buildBlunderStory(
   game: ChessGame,
@@ -185,31 +193,35 @@ export function buildBlunderStory(
     });
   }
 
-  // FREEZE
-  push(FREEZE_SECONDS, {
+  // THE BLUNDER PLAYS — an ordinary-looking move, no highlight, no eval.
+  // The viewer watches it happen without knowing yet that it's a mistake.
+  push(BLUNDER_PLAY_SECONDS, {
     position: { fen: candidate.ply.fenBefore, orientation },
+    moveAnimation: toMoveAnimation(candidate.ply, { start: t, end: t + BLUNDER_PLAY_SECONDS }),
+  });
+
+  // FREEZE — the resulting position holds; now ask the question.
+  push(FREEZE_SECONDS, {
+    position: { fen: candidate.ply.fenAfter, orientation },
     subtitle: { text: "CAN YOU SPOT THE MISTAKE?" },
   });
 
   // COUNTDOWN — structurally no arrows/highlights/eval, same guarantee as puzzle.
   for (let remaining = options.countdownSeconds; remaining >= 1; remaining--) {
     push(1, {
-      position: { fen: candidate.ply.fenBefore, orientation },
+      position: { fen: candidate.ply.fenAfter, orientation },
       countdown: { value: remaining },
     });
   }
 
-  // BLUNDER — the mistake itself animates.
-  push(BLUNDER_SECONDS, {
-    position: { fen: candidate.ply.fenBefore, orientation },
-    moveAnimation: toMoveAnimation(candidate.ply, { start: t, end: t + BLUNDER_SECONDS }),
-  });
-
-  // SWING — the position holds, the evaluation swing is dramatized.
-  const swingHighlights: HighlightElement[] = [{ square: candidate.ply.to, style: "critical" }];
+  // REVEAL — highlight exactly which move it was, evaluation swing dramatized.
+  const revealHighlights: HighlightElement[] = [
+    { square: candidate.ply.from, style: "origin" },
+    { square: candidate.ply.to, style: "critical" },
+  ];
   push(SWING_SECONDS, {
     position: { fen: candidate.ply.fenAfter, orientation },
-    highlights: swingHighlights,
+    highlights: revealHighlights,
     prompt: { text: "THE EVALUATION SWINGS", emphasis: true },
     evaluation: swingEvaluation,
   });

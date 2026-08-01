@@ -132,33 +132,46 @@ describe("buildBlunderStory", () => {
     analysis(FENS[4]!, 350, ["f1c4"]),
   ];
 
-  it("builds a timeline with lead-in, freeze, countdown, blunder, swing, punishment, payoff", () => {
+  it("builds a timeline with lead-in, the blunder playing, freeze, countdown, reveal, punishment, payoff", () => {
     const candidate: BlunderCandidate = selectBlunder(GAME, analyses);
     const timeline = buildBlunderStory(GAME, candidate, { countdownSeconds: 3, showEval: true });
 
-    // HOOK 1 + LEAD_IN(3 plies: e4,e5,Nf3) * 0.4 + FREEZE 1 + COUNTDOWN 3
-    // + BLUNDER 1.2 + SWING 1.5 + PUNISHMENT 1.2 + PAYOFF 3
-    const expectedDuration = 1 + 3 * 0.4 + 1 + 3 + 1.2 + 1.5 + 1.2 + 3;
+    // HOOK 1 + LEAD_IN(3 plies: e4,e5,Nf3) * 0.4 + BLUNDER_PLAY 1.2
+    // + FREEZE 1 + COUNTDOWN 3 + SWING 1.5 + PUNISHMENT 1.2 + PAYOFF 3
+    const expectedDuration = 1 + 3 * 0.4 + 1.2 + 1 + 3 + 1.5 + 1.2 + 3;
     expect(timeline.duration).toBeCloseTo(expectedDuration, 5);
   });
 
-  it("never shows arrows/highlights/evaluation before the blunder move animates", () => {
+  it("plays the blunder move itself before ever asking the question or revealing anything", () => {
     const candidate = selectBlunder(GAME, analyses);
     const timeline = buildBlunderStory(GAME, candidate, { countdownSeconds: 3, showEval: true });
-    const blunderStart = 1 + 3 * 0.4 + 1 + 3; // HOOK + LEAD_IN + FREEZE + COUNTDOWN
-    for (let t = 0; t < blunderStart; t += 0.2) {
+    const blunderPlayStart = 1 + 3 * 0.4; // HOOK + LEAD_IN
+    const state = stateAtTime(timeline, blunderPlayStart + 0.1);
+    expect(state.moveAnimation).toMatchObject({ from: candidate.ply.from, to: candidate.ply.to });
+    expect(state.highlights ?? []).toHaveLength(0);
+    expect(state.evaluation).toBeUndefined();
+  });
+
+  it("never shows highlights/evaluation until the reveal, even though the blunder already played", () => {
+    const candidate = selectBlunder(GAME, analyses);
+    const timeline = buildBlunderStory(GAME, candidate, { countdownSeconds: 3, showEval: true });
+    const revealStart = 1 + 3 * 0.4 + 1.2 + 1 + 3; // HOOK + LEAD_IN + BLUNDER_PLAY + FREEZE + COUNTDOWN
+    for (let t = 0; t < revealStart; t += 0.2) {
       const state = stateAtTime(timeline, t);
       expect(state.highlights ?? []).toHaveLength(0);
       expect(state.evaluation).toBeUndefined();
     }
   });
 
-  it("shows the swing highlight and evaluation right after the blunder animates", () => {
+  it("shows the reveal highlights (origin+destination) and evaluation exactly at the reveal boundary", () => {
     const candidate = selectBlunder(GAME, analyses);
     const timeline = buildBlunderStory(GAME, candidate, { countdownSeconds: 3, showEval: true });
-    const swingStart = 1 + 3 * 0.4 + 1 + 3 + 1.2;
-    const state = stateAtTime(timeline, swingStart);
-    expect(state.highlights).toEqual([{ square: candidate.ply.to, style: "critical" }]);
+    const revealStart = 1 + 3 * 0.4 + 1.2 + 1 + 3;
+    const state = stateAtTime(timeline, revealStart);
+    expect(state.highlights).toEqual([
+      { square: candidate.ply.from, style: "origin" },
+      { square: candidate.ply.to, style: "critical" },
+    ]);
     expect(state.evaluation).toEqual({ display: "+3.5", perspective: "white" });
   });
 

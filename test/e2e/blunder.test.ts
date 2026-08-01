@@ -67,12 +67,12 @@ describe("Gate: chessroll test/fixtures/blunder-game.pgn --template blunder", ()
     expect(probe.fps).toBeCloseTo(30, 5);
     expect(probe.codec).toBe("h264");
     expect(probe.pixFmt).toBe("yuv420p");
-    // HOOK 1 + LEAD_IN(4 plies)*0.4 + FREEZE 1 + COUNTDOWN 5 + BLUNDER 1.2
-    // + SWING 1.5 + PUNISHMENT 1.2 + PAYOFF 3
+    // HOOK 1 + LEAD_IN(4 plies)*0.4 + BLUNDER_PLAY 1.2 + FREEZE 1
+    // + COUNTDOWN 5 + SWING 1.5 + PUNISHMENT 1.2 + PAYOFF 3
     expect(probe.duration).toBeCloseTo(15.5, 1);
   }, 30_000);
 
-  it("detects 15...Nxe4?? and Bxd8, revealing nothing before the blunder animates", async () => {
+  it("detects 15...Nxe4?? and Bxd8, plays the blunder before asking, reveals nothing before the countdown ends", async () => {
     const game = loadPgn(await readFile(resolve("test/fixtures/blunder-game.pgn"), "utf8"));
     const analyses = await analyzeGame(engine, game, { depth: 16 });
     const candidate = selectBlunder(game, analyses);
@@ -106,9 +106,19 @@ describe("Gate: chessroll test/fixtures/blunder-game.pgn --template blunder", ()
     };
 
     try {
-      // HOOK+LEAD_IN+FREEZE+COUNTDOWN window: nothing revealed.
-      const blunderStart = 1 + 4 * 0.4 + 1 + 5;
-      for (const t of [0.5, 2.0, blunderStart - 0.1]) {
+      // HOOK + LEAD_IN: not the blunder yet.
+      const blunderPlayStart = 1 + 4 * 0.4;
+      // The blunder move plays here — visible, but not flagged in any way.
+      await renderAtTime(blunderPlayStart + 0.6);
+      const midBlunderHighlights = await session.page
+        .locator('#board-root rect[opacity="0.35"]')
+        .count();
+      expect(midBlunderHighlights).toBe(0);
+
+      // HOOK+LEAD_IN+BLUNDER_PLAY+FREEZE+COUNTDOWN window: nothing revealed,
+      // even though the blunder itself has already been played on screen.
+      const revealStart = 1 + 4 * 0.4 + 1.2 + 1 + 5;
+      for (const t of [0.5, 2.0, blunderPlayStart + 0.1, revealStart - 0.1]) {
         await renderAtTime(t);
         const overlayHtml = await session.page.locator("#overlay-root").innerHTML();
         expect(overlayHtml).not.toContain("evaluation");
@@ -118,11 +128,10 @@ describe("Gate: chessroll test/fixtures/blunder-game.pgn --template blunder", ()
         expect(highlightCount).toBe(0);
       }
 
-      // Right after the blunder animates: swing highlight + eval appear.
-      const swingStart = blunderStart + 1.2;
-      await renderAtTime(swingStart);
+      // Right at the reveal: origin+destination highlights + eval appear.
+      await renderAtTime(revealStart);
       const highlightCount = await session.page.locator('#board-root rect[opacity="0.35"]').count();
-      expect(highlightCount).toBe(1); // the hung knight's square
+      expect(highlightCount).toBe(2); // the blunder's origin + destination squares
 
       // PAYOFF: legal punishment label.
       await renderAtTime(timeline.duration);

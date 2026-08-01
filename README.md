@@ -42,15 +42,15 @@ Every step is inspectable independently — see [Debugging](#debugging).
 
 ## Templates
 
-| Template    | Input  | Status     | Description                                                                                                                                                                                                         |
-| ----------- | ------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `puzzle`    | FEN    | ✅ done    | Position → prompt → countdown → oxblood reveal → best move → forced continuation → payoff.                                                                                                                          |
-| `blunder`   | PGN    | ✅ done    | Auto-detects (or `--move` forces) the game's most severe mistake → hook → quick lead-in → freeze → "spot the mistake?" → countdown → the blunder animates → evaluation swing → engine's actual punishment → payoff. |
-| `replay`    | PGN    | 🚧 planned | Full game replay with importance-weighted move timing.                                                                                                                                                              |
-| `game60`    | PGN    | 🚧 planned | A game compressed into ~60s.                                                                                                                                                                                        |
-| `guess`     | PGN    | 🚧 planned | Pause before a selected move, guess what was played.                                                                                                                                                                |
-| `brilliant` | PGN    | 🚧 planned | Centered on one standout tactical/strategic move.                                                                                                                                                                   |
-| `auto`      | either | 🚧 planned | Analyze, pick the strongest story, choose a template automatically.                                                                                                                                                 |
+| Template    | Input  | Status     | Description                                                                                                                                                                                                                                              |
+| ----------- | ------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `puzzle`    | FEN    | ✅ done    | Position → prompt → countdown → oxblood reveal → best move → forced continuation → payoff.                                                                                                                                                               |
+| `blunder`   | PGN    | ✅ done    | Auto-detects (or `--move` forces) the game's most severe mistake → hook → quick lead-in → the blunder move plays (unflagged) → freeze → "spot the mistake?" → countdown → reveal (highlighted + evaluation swing) → engine's actual punishment → payoff. |
+| `replay`    | PGN    | 🚧 planned | Full game replay with importance-weighted move timing.                                                                                                                                                                                                   |
+| `game60`    | PGN    | 🚧 planned | A game compressed into ~60s.                                                                                                                                                                                                                             |
+| `guess`     | PGN    | 🚧 planned | Pause before a selected move, guess what was played.                                                                                                                                                                                                     |
+| `brilliant` | PGN    | 🚧 planned | Centered on one standout tactical/strategic move.                                                                                                                                                                                                        |
+| `auto`      | either | 🚧 planned | Analyze, pick the strongest story, choose a template automatically.                                                                                                                                                                                      |
 
 ## Quick start
 
@@ -160,7 +160,7 @@ Accent       #6B1F2A   oxblood — last move, reveals, arrows, evaluation
 Secondary    #6B6B68
 ```
 
-The board and pieces are original: `src/board/pieces.ts` is a from-scratch 12-glyph geometric SVG set (6 types × 2 colors) built from primitive shapes, deliberately distinct from Chess.com/Lichess and free of any licensing question. Board square colors, piece proportions, and typography (currently a system font stack) are flagged in `src/board/theme.ts` as defaults still pending visual sign-off — nothing here is final art direction.
+The board squares/overlays use Chessroll's own tokens above. Pieces are [lichess.org](https://lichess.org)'s default **cburnett** set by Colin M.L. Burnett — vendored unmodified at `renderer/assets/pieces/cburnett/` and embedded in `src/board/pieces.ts` — used under its GPLv2+ license (see [Licensing](#licensing)). Board square colors and typography (currently a system font stack) are flagged in `src/board/theme.ts` as defaults still pending visual sign-off — nothing here is final art direction.
 
 ## Architecture
 
@@ -187,7 +187,7 @@ src/
   engine/    Stockfish UCI, normalization, disk cache, analyzeGame()
   story/     puzzle.ts, blunder.ts — chess+analysis -> SceneTimeline
   scene/     pure timeline types, interpolation, stateAtTime()
-  board/     geometry, theme, original piece set, moves, arrows, render.ts
+  board/     geometry, theme, cburnett piece set, moves, arrows, render.ts
   video/     Playwright capture, ffmpeg encode, ffprobe validation
   config/    CLI-flag resolution and defaults
   utils/     exit-code errors, temp dirs, executable discovery
@@ -229,7 +229,7 @@ Not yet built. `demo/` already has the canonical assets (source + MP4 + poster p
 Done (this repository, current state):
 
 - Normalized chess model (FEN + PGN), verified special-move fixtures
-- Deterministic SVG board/overlay renderer, original piece set
+- Deterministic SVG board/overlay renderer, lichess's cburnett piece set
 - Stockfish UCI integration, score normalization, disk cache
 - `puzzle` and `blunder` templates, full CLI + debug CLI
 - Playwright capture → FFmpeg encode pipeline
@@ -242,11 +242,19 @@ Not yet built — see [`ROADMAP.md`](./ROADMAP.md) and [`BLUEPRINT.md`](./BLUEPR
 - A GitHub Pages showcase site (`site/`)
 - CI (`ci.yml`/`demo.yml`/`pages.yml`)
 - Optional sound design
-- Visual-regression testing and a finalized visual pass (current board/piece colors are placeholders, see [Visual identity](#visual-identity))
+- Visual-regression testing and a finalized visual pass (current board square colors are placeholders, see [Visual identity](#visual-identity))
 
 ## Licensing
 
-[MIT](./LICENSE). Famous games' moves/metadata may be used where legally appropriate, but copyrighted annotations, commentary, or proprietary puzzle explanations are never copied — the `blunder` demo fixture, for instance, is an original short game, not a real recorded game.
+Chessroll's own code is [MIT](./LICENSE), with one asset exception:
+
+| Files                                                                                                                   | Author                                                            | License                                            |
+| ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------- |
+| `renderer/assets/pieces/cburnett/*.svg` (vendored unmodified) and the equivalent inline markup in `src/board/pieces.ts` | [Colin M.L. Burnett](https://en.wikipedia.org/wiki/User:Cburnett) | [GPLv2+](https://www.gnu.org/licenses/gpl-2.0.txt) |
+
+This is lichess.org's own default piece set (`public/piece/cburnett` in [lichess-org/lila](https://github.com/lichess-org/lila), see their [COPYING.md](https://github.com/lichess-org/lila/blob/master/COPYING.md)), used here by explicit choice to render immediately recognizable pieces rather than a bespoke set. If you redistribute or modify these specific SVG files, GPLv2+ terms apply to them — see [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md).
+
+Famous games' moves/metadata may be used where legally appropriate, but copyrighted annotations, commentary, or proprietary puzzle explanations are never copied — the `blunder` demo fixture, for instance, is an original short game, not a real recorded game.
 
 ## Contributing
 
