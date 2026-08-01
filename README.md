@@ -12,15 +12,20 @@ PGN / FEN → chess model → Stockfish analysis → story → scene timeline �
 
 ## Demo
 
-No hosted demo videos or GitHub Pages site exist yet (see [Roadmap](#roadmap)). Generate the two working demos locally in under a minute:
+No GitHub Pages site exists yet (see [Roadmap](#roadmap)), but the canonical demo videos are committed under [`demo/`](./demo) — click a poster to play the MP4:
+
+| Puzzle                                                                                                                                                          | Blunder                                                                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![Puzzle demo — find the move, mate in 2](demo/puzzle/poster.png)](demo/puzzle/demo.mp4)                                                                       | [![Blunder demo — spot the mistake](demo/blunder/poster.png)](demo/blunder/demo.mp4)                                                                        |
+| [`demo/puzzle/position.fen`](demo/puzzle/position.fen) — a mate-in-2 rook "staircase": find the move, countdown, oxblood reveal, forced continuation to `Rh8#`. | [`demo/blunder/game.pgn`](demo/blunder/game.pgn) — an original short game where `15...Nxe4??` opens the diagonal to a hanging queen, punished by `16.Bxd8`. |
+
+Regenerate either locally:
 
 ```bash
 pnpm install && pnpm build
-node dist/cli.js test/fixtures/puzzle.fen --template puzzle -o puzzle.mp4 --show-eval
-node dist/cli.js test/fixtures/blunder-game.pgn --template blunder -o blunder.mp4 --show-eval
+node dist/cli.js demo/puzzle/position.fen --template puzzle -o demo/puzzle/demo.mp4 --show-eval
+node dist/cli.js demo/blunder/game.pgn --template blunder -o demo/blunder/demo.mp4 --show-eval
 ```
-
-`puzzle.mp4` is a mate-in-2 rook "staircase" puzzle (find the move, countdown, oxblood reveal, forced continuation). `blunder.mp4` is a short original game where `15...Nxe4??` opens the diagonal to a hanging queen, punished by `16.Bxd8`.
 
 ## What Chessroll does
 
@@ -217,7 +222,7 @@ Chess-correctness fixtures (`test/fixtures/`) — castling both directions, en p
 
 ## GitHub Pages
 
-Not yet built. Once canonical demo assets exist, `site/` will host a static page in the same visual identity showing each template's source alongside its rendered output, deployed via a minimal-permissions GitHub Actions workflow. Tracked in [Roadmap](#roadmap).
+Not yet built. `demo/` already has the canonical assets (source + MP4 + poster per template — see [Demo](#demo)); `site/` will host a static page in the same visual identity showing each template's source alongside its rendered output, deployed via a minimal-permissions GitHub Actions workflow. Tracked in [Roadmap](#roadmap).
 
 ## Roadmap
 
@@ -228,12 +233,13 @@ Done (this repository, current state):
 - Stockfish UCI integration, score normalization, disk cache
 - `puzzle` and `blunder` templates, full CLI + debug CLI
 - Playwright capture → FFmpeg encode pipeline
+- Canonical demo assets for both working templates (`demo/puzzle/`, `demo/blunder/`)
 - 129 tests across unit/integration/e2e, including two full-pipeline acceptance gates
 
 Not yet built — see [`ROADMAP.md`](./ROADMAP.md) and [`BLUEPRINT.md`](./BLUEPRINT.md) for the full spec:
 
-- `replay`, `game60`, `guess`, `brilliant`, `auto` templates
-- Canonical demo video assets and a GitHub Pages showcase site
+- `replay`, `game60`, `guess`, `brilliant`, `auto` templates (and their demo assets)
+- A GitHub Pages showcase site (`site/`)
 - CI (`ci.yml`/`demo.yml`/`pages.yml`)
 - Optional sound design
 - Visual-regression testing and a finalized visual pass (current board/piece colors are placeholders, see [Visual identity](#visual-identity))
