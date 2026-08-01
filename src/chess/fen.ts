@@ -33,3 +33,13 @@ export function loadFen(fen: string): LoadedFen {
 
   return { fen: chess.fen(), sideToMove: sideFromColor(chess.turn()) };
 }
+
+/**
+ * Reads the side to move directly off a FEN's own "w"/"b" field, without
+ * the full loadFen() validation pass. For internal use on FENs already
+ * known-good (e.g. produced by chess.js itself), not on user input.
+ */
+export function sideToMoveFromFen(fen: string): Side {
+  const field = fen.trim().split(/\s+/)[1];
+  return field === "b" ? "black" : "white";
+}
