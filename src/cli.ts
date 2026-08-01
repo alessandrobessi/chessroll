@@ -21,12 +21,12 @@ program
   .name("chessroll")
   .description("Turn PGN/FEN chess content into deterministic short-form videos")
   .version("0.0.0")
-  .argument("[input]", "path to a .fen file (puzzle) or .pgn file (blunder, brilliant)")
+  .argument("[input]", "path to a .fen file (puzzle) or .pgn file (blunder, brilliant, replay)")
   .option("--fen <fen>", "inline FEN string, instead of an input file (puzzle only)")
   .option("-o, --output <path>", "output MP4 path")
   .option(
     "--template <name>",
-    'content template: "puzzle" (default, needs FEN), "blunder" or "brilliant" (need PGN)',
+    'content template: "puzzle" (default, needs FEN), "blunder", "brilliant", or "replay" (need PGN)',
   )
   .option(
     "--move <n>",
@@ -43,7 +43,11 @@ program
   .option("--threads <n>", "engine threads", parseIntArg("--threads"))
   .option("--hash <mb>", "engine hash size (MB)", parseIntArg("--hash"))
   .option("--multipv <n>", "engine MultiPV", parseIntArg("--multipv"))
-  .option("--countdown <seconds>", "puzzle solve countdown", parseIntArg("--countdown"))
+  .option(
+    "--countdown <seconds>",
+    "puzzle/blunder/brilliant solve countdown (not used by replay)",
+    parseIntArg("--countdown"),
+  )
   .option("--show-eval", "reveal the evaluation at payoff")
   .option("--no-eval", "never show the evaluation")
   .option("--coordinates", "show board coordinates")

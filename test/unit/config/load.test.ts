@@ -72,7 +72,7 @@ describe("resolveOptions", () => {
   });
 
   it("rejects an unimplemented --template", async () => {
-    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "replay" })).rejects.toThrow(
+    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "game60" })).rejects.toThrow(
       CliArgumentError,
     );
   });
@@ -92,6 +92,29 @@ describe("resolveOptions", () => {
     await expect(resolveOptions({ input: "position.fen", template: "blunder" })).rejects.toThrow(
       CliArgumentError,
     );
+  });
+
+  it("rejects --fen for the replay template", async () => {
+    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "replay" })).rejects.toThrow(
+      CliArgumentError,
+    );
+  });
+
+  it("rejects a .fen input for the replay template", async () => {
+    await expect(resolveOptions({ input: "position.fen", template: "replay" })).rejects.toThrow(
+      CliArgumentError,
+    );
+  });
+
+  it("resolves a .pgn input for the replay template", async () => {
+    const pgnPath = join(dir, "game.pgn");
+    await writeFile(pgnPath, "1. e4 e5 2. Nf3 Nc6 *", "utf8");
+    const options = await resolveOptions({ input: pgnPath, template: "replay" });
+    if (options.template !== "replay") {
+      throw new Error(`expected a replay template, got "${options.template}"`);
+    }
+    expect(options.game.plies).toHaveLength(4);
+    expect(options.output).toBe(join(dir, "game.mp4"));
   });
 
   it("rejects specifying both --depth and --nodes", async () => {

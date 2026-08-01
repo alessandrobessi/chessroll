@@ -9,6 +9,7 @@ import { analyzeGame } from "./engine/analysis.js";
 import { buildPuzzleStory } from "./story/puzzle.js";
 import { buildBlunderStory, selectBlunder } from "./story/blunder.js";
 import { buildBrilliantStory, selectBrilliantMove } from "./story/brilliant.js";
+import { buildReplayStory } from "./story/replay.js";
 import type { SceneTimeline } from "./scene/types.js";
 import { findExecutable } from "./utils/process.js";
 import { createTempDir } from "./utils/temp.js";
@@ -91,6 +92,20 @@ async function buildTimeline(
       const orientation = options.orientation === "auto" ? undefined : options.orientation;
       return buildBrilliantStory(options.game, candidate, {
         countdownSeconds: options.countdownSeconds,
+        showEval: options.showEval,
+        orientation,
+        coordinates: options.coordinates,
+      });
+    }
+    case "replay": {
+      const analyses = await analyzeGame(engine, options.game, {
+        depth: options.depth,
+        nodes: options.nodes,
+        cache,
+        useCache: options.cache,
+      });
+      const orientation = options.orientation === "auto" ? undefined : options.orientation;
+      return buildReplayStory(options.game, analyses, {
         showEval: options.showEval,
         orientation,
         coordinates: options.coordinates,

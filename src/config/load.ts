@@ -7,9 +7,9 @@ import { CliArgumentError, InputNotFoundError } from "../utils/errors.js";
 import { defaultOutputPath } from "../utils/paths.js";
 import { DEFAULTS } from "./defaults.js";
 
-export type TemplateName = "puzzle" | "blunder" | "brilliant";
+export type TemplateName = "puzzle" | "blunder" | "brilliant" | "replay";
 
-const IMPLEMENTED_TEMPLATES: readonly TemplateName[] = ["puzzle", "blunder", "brilliant"];
+const IMPLEMENTED_TEMPLATES: readonly TemplateName[] = ["puzzle", "blunder", "brilliant", "replay"];
 
 export interface CliFlags {
   input?: string;
@@ -79,7 +79,13 @@ export interface BrilliantRenderOptions extends CommonRenderOptions {
   moveOverride?: number;
 }
 
-export type RenderOptions = PuzzleRenderOptions | BlunderRenderOptions | BrilliantRenderOptions;
+export interface ReplayRenderOptions extends CommonRenderOptions {
+  template: "replay";
+  game: ChessGame;
+}
+
+export type RenderOptions =
+  PuzzleRenderOptions | BlunderRenderOptions | BrilliantRenderOptions | ReplayRenderOptions;
 
 function resolveTemplate(flags: CliFlags): TemplateName {
   const template = flags.template ?? "puzzle";
@@ -188,6 +194,11 @@ async function resolveBrilliantOptions(flags: CliFlags): Promise<BrilliantRender
   };
 }
 
+async function resolveReplayOptions(flags: CliFlags): Promise<ReplayRenderOptions> {
+  const { game, output } = await resolvePgnGame(flags, "replay");
+  return { ...commonOptions(flags, output), template: "replay", game };
+}
+
 /** Merges CLI flags with defaults, validating cross-field constraints. */
 export async function resolveOptions(flags: CliFlags): Promise<RenderOptions> {
   const template = resolveTemplate(flags);
@@ -202,5 +213,7 @@ export async function resolveOptions(flags: CliFlags): Promise<RenderOptions> {
       return resolveBlunderOptions(flags);
     case "brilliant":
       return resolveBrilliantOptions(flags);
+    case "replay":
+      return resolveReplayOptions(flags);
   }
 }
