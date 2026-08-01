@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Turn PGN/FEN chess content into deterministic 1080x1920 short-form videos.",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -32,8 +33,7 @@
     "execa": "^10.0.1",
     "picocolors": "^1.1.1",
     "playwright": "^1.62.1",
-    "which": "^7.0.0",
-    "zod": "^4.4.3"
+    "which": "^7.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
