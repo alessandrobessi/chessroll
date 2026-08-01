@@ -2,10 +2,20 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { resolveOptions } from "../../../src/config/load.js";
+import {
+  resolveOptions,
+  type PuzzleRenderOptions,
+  type RenderOptions,
+} from "../../../src/config/load.js";
 import { CliArgumentError, InputNotFoundError } from "../../../src/utils/errors.js";
 
 const PUZZLE_FEN = "6k1/8/8/8/8/8/R7/K6R w - - 0 1";
+
+function expectPuzzle(options: RenderOptions): asserts options is PuzzleRenderOptions {
+  if (options.template !== "puzzle") {
+    throw new Error(`expected a puzzle template, got "${options.template}"`);
+  }
+}
 
 let dir: string;
 
@@ -20,6 +30,7 @@ afterEach(async () => {
 describe("resolveOptions", () => {
   it("resolves a FEN passed inline via --fen, with defaults applied", async () => {
     const options = await resolveOptions({ fen: PUZZLE_FEN });
+    expectPuzzle(options);
     expect(options.fen).toBe(PUZZLE_FEN);
     expect(options.sideToMove).toBe("white");
     expect(options.template).toBe("puzzle");
@@ -35,6 +46,7 @@ describe("resolveOptions", () => {
     const fenPath = join(dir, "mate-in-2.fen");
     await writeFile(fenPath, `${PUZZLE_FEN}\n`, "utf8");
     const options = await resolveOptions({ input: fenPath });
+    expectPuzzle(options);
     expect(options.fen).toBe(PUZZLE_FEN);
     expect(options.output).toBe(join(dir, "mate-in-2.mp4"));
   });
@@ -60,7 +72,7 @@ describe("resolveOptions", () => {
   });
 
   it("rejects an unimplemented --template", async () => {
-    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "blunder" })).rejects.toThrow(
+    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "replay" })).rejects.toThrow(
       CliArgumentError,
     );
   });
@@ -68,6 +80,18 @@ describe("resolveOptions", () => {
   it("accepts --template puzzle explicitly", async () => {
     const options = await resolveOptions({ fen: PUZZLE_FEN, template: "puzzle" });
     expect(options.template).toBe("puzzle");
+  });
+
+  it("rejects --fen for the blunder template", async () => {
+    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "blunder" })).rejects.toThrow(
+      CliArgumentError,
+    );
+  });
+
+  it("rejects a .fen input for the blunder template", async () => {
+    await expect(resolveOptions({ input: "position.fen", template: "blunder" })).rejects.toThrow(
+      CliArgumentError,
+    );
   });
 
   it("rejects specifying both --depth and --nodes", async () => {

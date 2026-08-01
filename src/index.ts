@@ -6,6 +6,8 @@ import { analyzePosition } from "./engine/analysis.js";
 import { StockfishEngine } from "./engine/stockfish.js";
 import type { Side } from "./chess/types.js";
 import { buildPuzzleStory } from "./story/puzzle.js";
+import type { SceneTimeline } from "./scene/types.js";
+import { UnexpectedError } from "./utils/errors.js";
 import { findExecutable } from "./utils/process.js";
 import { createTempDir } from "./utils/temp.js";
 import { launchRenderer } from "./video/browser.js";
@@ -32,7 +34,36 @@ export interface RenderResult {
   durationSeconds: number;
 }
 
-/** Orchestrates chess -> engine -> story -> scene -> video for `--template puzzle`. */
+async function buildTimeline(
+  engine: StockfishEngine,
+  options: RenderOptions,
+): Promise<SceneTimeline> {
+  const cache = options.cache ? new AnalysisCache() : undefined;
+
+  switch (options.template) {
+    case "puzzle": {
+      const analysis = await analyzePosition(engine, {
+        fen: options.fen,
+        sideToMove: options.sideToMove,
+        depth: options.depth,
+        nodes: options.nodes,
+        cache,
+        useCache: options.cache,
+      });
+      const orientation = resolveOrientation(options.orientation, options.sideToMove);
+      return buildPuzzleStory(options.fen, options.sideToMove, analysis, {
+        countdownSeconds: options.countdownSeconds,
+        showEval: options.showEval,
+        orientation,
+      });
+    }
+    case "blunder":
+      // Wired up once src/story/blunder.ts exists.
+      throw new UnexpectedError('"blunder" template is not wired into renderVideo() yet');
+  }
+}
+
+/** Orchestrates chess -> engine -> story -> scene -> video. */
 export async function renderVideo(options: RenderOptions): Promise<RenderResult> {
   const stockfishPath = await findExecutable("stockfish", {
     explicitPath: options.engine,
@@ -50,22 +81,7 @@ export async function renderVideo(options: RenderOptions): Promise<RenderResult>
   let timelineDuration: number;
   let session: Awaited<ReturnType<typeof launchRenderer>>;
   try {
-    const cache = options.cache ? new AnalysisCache() : undefined;
-    const analysis = await analyzePosition(engine, {
-      fen: options.fen,
-      sideToMove: options.sideToMove,
-      depth: options.depth,
-      nodes: options.nodes,
-      cache,
-      useCache: options.cache,
-    });
-
-    const orientation = resolveOrientation(options.orientation, options.sideToMove);
-    const timeline = buildPuzzleStory(options.fen, options.sideToMove, analysis, {
-      countdownSeconds: options.countdownSeconds,
-      showEval: options.showEval,
-      orientation,
-    });
+    const timeline = await buildTimeline(engine, options);
     timelineDuration = timeline.duration;
 
     session = await launchRenderer({
