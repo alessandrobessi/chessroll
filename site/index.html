@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chessroll — Turn chess positions into short-form stories</title>
+    <meta
+      name="description"
+      content="Chessroll turns PGN games and FEN positions into deterministic 1080×1920 vertical videos, rendered from real Stockfish analysis and real chess rules."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <p class="eyebrow">Chessroll</p>
+      <h1>Turn chess positions<br />into short-form stories.</h1>
+      <p class="tagline">
+        A deterministic TypeScript/Node CLI — real Stockfish analysis and real chess rules, not
+        screen-recorded from a website.
+      </p>
+      <div class="cta-row">
+        <a href="#demos" class="button button--primary">Watch demos</a>
+        <a href="https://github.com/alessandrobessi/chessroll" class="button button--secondary"
+          >View on GitHub</a
+        >
+      </div>
+    </header>
+
+    <main>
+      <section id="demos" class="demos">
+        <h2>Five templates, one deterministic pipeline</h2>
+        <p class="section-intro">
+          Every video below is generated from the source position or game shown beside it — click a
+          poster to play.
+        </p>
+
+        <div class="demo-grid">
+          <article class="demo-card">
+            <h3>Find the Best Move</h3>
+            <p class="demo-desc">
+              A position, a countdown, an oxblood reveal, then the engine's best move plays out to
+              its forced payoff.
+            </p>
+            <video
+              controls
+              preload="none"
+              poster="demo/puzzle/poster.png"
+              width="1080"
+              height="1920"
+            >
+              <source src="demo/puzzle/demo.mp4" type="video/mp4" />
+            </video>
+            <p class="source-label"><code>demo/puzzle/position.fen</code></p>
+            <pre class="source"><code>6k1/8/8/8/8/8/R7/K6R w - - 0 1</code></pre>
+          </article>
+
+          <article class="demo-card">
+            <h3>Spot the Blunder</h3>
+            <p class="demo-desc">
+              The mistake plays out on screen first, unflagged — then the countdown, the reveal, and
+              the engine's actual punishment.
+            </p>
+            <video
+              controls
+              preload="none"
+              poster="demo/blunder/poster.png"
+              width="1080"
+              height="1920"
+            >
+              <source src="demo/blunder/demo.mp4" type="video/mp4" />
+            </video>
+            <p class="source-label"><code>demo/blunder/game.pgn</code></p>
+            <pre class="source"><code>[Event "Chessroll fixture"]
+[Site "-"]
+[Date "????.??.??"]
+[Round "-"]
+[White "Fixture"]
+[Black "Fixture"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. O-O Nf6 5. d3 d6 6. c3 O-O 7. Bg5 h6 8. Bh4
+Nxe4 *</code></pre>
+          </article>
+
+          <article class="demo-card">
+            <h3>Find the Brilliant Move</h3>
+            <p class="demo-desc">
+              A Chessroll-selected standout move — a near-unique best move or a real material
+              sacrifice that still wins — proven out by a forced continuation.
+            </p>
+            <video
+              controls
+              preload="none"
+              poster="demo/brilliant/poster.png"
+              width="1080"
+              height="1920"
+            >
+              <source src="demo/brilliant/demo.mp4" type="video/mp4" />
+            </video>
+            <p class="source-label"><code>demo/brilliant/game.pgn</code></p>
+            <pre class="source"><code>[Event "Chessroll fixture"]
+[Site "-"]
+[Date "????.??.??"]
+[Round "-"]
+[White "Fixture"]
+[Black "Fixture"]
+[Result "*"]
+[SetUp "1"]
+[FEN "3q1r1k/pp4pp/7N/3QN3/8/8/PPP2PPP/6K1 w - - 0 1"]
+
+1. Qg8+ Rxg8 2. Nef7# *</code></pre>
+          </article>
+
+          <article class="demo-card">
+            <h3>Game Replay</h3>
+            <p class="demo-desc">
+              The whole game, importance-weighted — quiet moves run fast, critical moments pause,
+              highlight, and get annotated.
+            </p>
+            <video
+              controls
+              preload="none"
+              poster="demo/replay/poster.png"
+              width="1080"
+              height="1920"
+            >
+              <source src="demo/replay/demo.mp4" type="video/mp4" />
+            </video>
+            <p class="source-label"><code>demo/replay/game.pgn</code></p>
+            <pre class="source"><code>[Event "Chessroll Fixture Open"]
+[Site "-"]
+[Date "2024.03.15"]
+[Round "-"]
+[White "A. Rowan"]
+[Black "B. Voss"]
+[Result "0-1"]
+[WhiteElo "2100"]
+[BlackElo "2050"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3 Nf6 5. d4 exd4 6. cxd4 Bb4+ 7. Bd2 Bxd2+
+8. Nbxd2 d5 9. exd5 Nxd5 10. Qb3 Nce7 11. O-O O-O 12. Rfe1 c6 13. Ne4 Nb6
+14. Qxb6 axb6 15. Nc5 b5 16. Bd3 Ra3 0-1</code></pre>
+          </article>
+
+          <article class="demo-card">
+            <h3>Game in 60 Seconds</h3>
+            <p class="demo-desc">
+              The same full-game story, bounded to a target duration — every move's pace scaled down
+              to fit, never padded out artificially.
+            </p>
+            <video
+              controls
+              preload="none"
+              poster="demo/game60/poster.png"
+              width="1080"
+              height="1920"
+            >
+              <source src="demo/game60/demo.mp4" type="video/mp4" />
+            </video>
+            <p class="source-label">
+              <code>demo/game60/game.pgn</code> (rendered with --target 25)
+            </p>
+            <pre class="source"><code>[Event "Chessroll Fixture Championship"]
+[Site "-"]
+[Date "2023.11.02"]
+[Round "-"]
+[White "C. Ibarra"]
+[Black "D. Solheim"]
+[Result "*"]
+[WhiteElo "2210"]
+[BlackElo "2190"]
+
+1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Nxd4 Nf6 5. Nxc6 bxc6 6. Qe2 Be7 7. e5 Nd5
+8. c4 Nb6 9. Qc2 d5 10. exd6 cxd6 11. Bd3 h6 12. O-O O-O 13. Nc3 d5 14. b3
+dxc4 15. bxc4 Nd7 16. Rd1 Qc7 17. Ne2 Bd6 18. Bg6 fxg6 19. Rxd6 Qxd6 20. Bb2
+Qe7 21. Nd4 Qe8 22. Qc3 Nf6 23. Re1 Qd7 24. Nf3 Kh7 25. Ne5 Qc7 26. Nxg6 Kxg6
+27. h3 h5 28. Qe3 Qd7 29. c5 Qd5 30. Qe7 Re8 31. Qxg7+ Kxg7 32. Rxe8 Qd1+
+33. Kh2 Qb1 34. Re7+ Kg6 35. Bd4 Qb4 *</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="how-it-works">
+        <h2>How it works</h2>
+        <div class="cards">
+          <div class="card">
+            <h3>Stockfish analysis</h3>
+            <p>
+              Every position is analyzed by a real Stockfish process over UCI — never a hand-rolled
+              heuristic. Raw scores are always relative to the side to move; a single normalization
+              step flips them to White's perspective before anything else in the app sees them, and
+              mate scores are never coerced into a fake centipawn number.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Deterministic rendering</h3>
+            <p>
+              Every frame is a pure function of its timestamp — <code>renderAtTime(t)</code> — with
+              no wall clock, no CSS transitions, and no dependency on any previously rendered frame.
+              The same input always produces the same video, byte for byte on the same machine.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="cli">
+        <h2>CLI quick start</h2>
+        <pre class="source"><code>pnpm install
+pnpm build
+node dist/cli.js test/fixtures/puzzle.fen --template puzzle -o puzzle.mp4 --show-eval</code></pre>
+        <p class="section-intro">
+          See the <a href="https://github.com/alessandrobessi/chessroll#readme">README</a> for every
+          template, flag, and the full CLI reference.
+        </p>
+      </section>
+
+      <section class="architecture">
+        <h2>Architecture</h2>
+        <div class="pipeline">
+          <span class="pipeline-step">PGN / FEN</span>
+          <span class="pipeline-arrow" aria-hidden="true">→</span>
+          <span class="pipeline-step">chess model</span>
+          <span class="pipeline-arrow" aria-hidden="true">→</span>
+          <span class="pipeline-step">Stockfish analysis</span>
+          <span class="pipeline-arrow" aria-hidden="true">→</span>
+          <span class="pipeline-step">story</span>
+          <span class="pipeline-arrow" aria-hidden="true">→</span>
+          <span class="pipeline-step">scene timeline</span>
+          <span class="pipeline-arrow" aria-hidden="true">→</span>
+          <span class="pipeline-step">renderAtTime(t)</span>
+          <span class="pipeline-arrow" aria-hidden="true">→</span>
+          <span class="pipeline-step">Chromium frames</span>
+          <span class="pipeline-arrow" aria-hidden="true">→</span>
+          <span class="pipeline-step">FFmpeg</span>
+          <span class="pipeline-arrow" aria-hidden="true">→</span>
+          <span class="pipeline-step pipeline-step--final">MP4</span>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Chessroll's own code is MIT licensed. The vendored piece set (<a
+          href="https://en.wikipedia.org/wiki/User:Cburnett"
+          >cburnett</a
+        >, also lichess's default) is GPLv2+ — see
+        <a href="https://github.com/alessandrobessi/chessroll/blob/main/THIRD_PARTY_NOTICES.md"
+          >THIRD_PARTY_NOTICES.md</a
+        >.
+      </p>
+      <a href="https://github.com/alessandrobessi/chessroll" class="footer-link"
+        >github.com/alessandrobessi/chessroll</a
+      >
+    </footer>
+  </body>
+</html>

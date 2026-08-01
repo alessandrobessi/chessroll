@@ -12,7 +12,7 @@ PGN / FEN → chess model → Stockfish analysis → story → scene timeline �
 
 ## Demo
 
-No GitHub Pages site exists yet (see [Roadmap](#roadmap)), but the canonical demo videos are committed under [`demo/`](./demo) — click a poster to play the MP4 (all rendered with `--coordinates`, which is off by default):
+See these live at [alessandrobessi.github.io/chessroll](https://alessandrobessi.github.io/chessroll/), or the canonical demo videos are committed under [`demo/`](./demo) right here — click a poster to play the MP4 (all rendered with `--coordinates`, which is off by default):
 
 | Puzzle                                                                                                                                                          | Blunder                                                                                                                                                     | Brilliant                                                                                                                                             |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -264,7 +264,11 @@ Chess-correctness fixtures (`test/fixtures/`) — castling both directions, en p
 
 ## GitHub Pages
 
-Not yet built. `demo/` already has the canonical assets (source + MP4 + poster per template — see [Demo](#demo)); `site/` will host a static page in the same visual identity showing each template's source alongside its rendered output, deployed via a minimal-permissions GitHub Actions workflow. Tracked in [Roadmap](#roadmap).
+[**alessandrobessi.github.io/chessroll**](https://alessandrobessi.github.io/chessroll/) — a static showcase page (`site/`) in the same visual identity as the rendered videos: all five templates' demos with source FEN/PGN shown alongside each, how-it-works, CLI quick start, and a static architecture pipeline diagram (no JS framework, no CDN — plain HTML/CSS, `<video preload="none" poster controls>` for click-to-play without eager-loading five MP4s).
+
+Deployed by [`.github/workflows/pages.yml`](.github/workflows/pages.yml) on every push to `main`, via the official minimal-permissions (`contents: read`, `pages: write`, `id-token: write`) Actions deployment flow. It packages the site against the demo assets **already committed to the repo** — it never re-renders anything, so it needs no Stockfish/FFmpeg/Chromium. Re-rendering-and-validating the canonical demos in CI is `demo.yml`'s job, still on the roadmap.
+
+Regenerate the site locally: `pnpm build` (part of the same build as the CLI/renderer) writes a fully self-contained `site/dist/` — open `site/dist/index.html` directly.
 
 ## Roadmap
 
@@ -279,13 +283,13 @@ Done (this repository, current state):
 - Playwright capture → FFmpeg encode pipeline
 - Synthesized sound design (`src/audio/`) — move/capture/check/checkmate/countdown-tick/reveal cues, muxed in as AAC, on by default (`--no-sound` to mute)
 - Canonical demo assets for all five working templates (`demo/puzzle/`, `demo/blunder/`, `demo/brilliant/`, `demo/replay/`, `demo/game60/`)
-- 236 tests across unit/integration/e2e, including five full-pipeline acceptance gates
+- A GitHub Pages showcase site (`site/`), deployed by `pages.yml`
+- 239 tests across unit/integration/e2e, including five full-pipeline acceptance gates
 
 Not yet built — see [`ROADMAP.md`](./ROADMAP.md) and [`BLUEPRINT.md`](./BLUEPRINT.md) for the full spec:
 
 - `guess` template (and its demo assets) — `auto` is explicitly out of scope, dropped by product decision
-- A GitHub Pages showcase site (`site/`)
-- CI (`ci.yml`/`demo.yml`/`pages.yml`)
+- The rest of CI (`ci.yml` for lint/test/build, `demo.yml` to re-render and validate the canonical demos automatically)
 - Visual-regression testing and a finalized visual pass (current board square colors are placeholders, see [Visual identity](#visual-identity))
 
 ## Licensing

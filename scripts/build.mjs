@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { cp, rm } from "node:fs/promises";
+import { cp, mkdir, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -33,11 +33,31 @@ async function buildRenderer() {
   await cp(`${root}renderer/renderer.css`, `${root}renderer/dist/renderer.css`);
 }
 
+/**
+ * Static site — no bundler entrypoint needed: `<video preload="none"
+ * poster controls>` already gives click-to-play without eager-loading five
+ * MP4s, so there's no JS to write or build. Just package index.html/
+ * styles.css alongside the already-rendered, already-validated demo/
+ * assets so the deployed artifact is fully self-contained.
+ */
+async function buildSite() {
+  const outDir = `${root}site/dist`;
+  await mkdir(outDir, { recursive: true });
+  await cp(`${root}site/index.html`, `${outDir}/index.html`);
+  await cp(`${root}site/styles.css`, `${outDir}/styles.css`);
+  await cp(`${root}demo`, `${outDir}/demo`, {
+    recursive: true,
+    filter: (src) => !src.endsWith(".DS_Store"),
+  });
+}
+
 async function main() {
   await rm(`${root}dist`, { recursive: true, force: true });
   await rm(`${root}renderer/dist`, { recursive: true, force: true });
+  await rm(`${root}site/dist`, { recursive: true, force: true });
   await buildCli();
   await buildRenderer();
+  await buildSite();
 }
 
 await main();

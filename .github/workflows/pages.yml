@@ -1,0 +1,56 @@
+name: Deploy GitHub Pages
+
+# Consumes already-committed, already-validated demo assets (demo/**) and
+# deploys the static showcase site (site/) — it does not re-render any
+# videos, so it never needs Stockfish/FFmpeg/Chromium. That's what a
+# future demo.yml is for.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # --ignore-scripts: this job only needs to bundle/copy static files
+      # (site/dist/), never to render a video, so skip the postinstall
+      # `playwright install chromium` step entirely — meaningfully faster,
+      # and Chromium is unused weight for what this workflow actually does.
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - run: node scripts/build.mjs
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
