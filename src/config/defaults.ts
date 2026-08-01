@@ -1,0 +1,17 @@
+export const DEFAULTS = {
+  width: 1080,
+  height: 1920,
+  fps: 30,
+  orientation: "auto" as const,
+  depth: 18,
+  threads: 1,
+  hashMb: 128,
+  multiPv: 1,
+  countdownSeconds: 5,
+  showEval: false,
+  coordinates: false,
+  keepTemp: false,
+  cache: true,
+  verbose: false,
+  quiet: false,
+} as const;
