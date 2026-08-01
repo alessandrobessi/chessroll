@@ -44,15 +44,23 @@ function renderHighlights(
 
 /**
  * Squares that must NOT be drawn from the static position, because a
- * MoveAnimation is currently animating a piece out of them (or, for
- * captures, the captured piece is gone the instant the move starts —
- * BLUEPRINT.md §12's "captured piece handling is deterministic").
+ * MoveAnimation is currently animating a piece out of them. A captured
+ * piece is deliberately NOT included here: it stays visible at its square
+ * for the whole animation and is only visually covered once the capturing
+ * piece actually arrives there (renderMovingPieces draws after — i.e. on
+ * top of — renderStaticPieces, see renderBoardSvg). For a normal capture
+ * that square is the same as `to`, so the two pieces only overlap in the
+ * final moments of the animation, exactly when the capture "lands." The
+ * alternative — hiding it from t=start — makes the captured piece vanish
+ * while the capturing piece is still elsewhere on the board, which reads
+ * as a bug, not a capture (this is what BLUEPRINT.md §12's "captured
+ * piece handling is deterministic" actually calls for: deterministic, not
+ * instantaneous).
  */
 function squaresToSkip(moveAnimation: MoveAnimation | undefined): Set<Square> {
   const skip = new Set<Square>();
   if (!moveAnimation) return skip;
   skip.add(moveAnimation.from);
-  if (moveAnimation.capturedSquare) skip.add(moveAnimation.capturedSquare);
   if (moveAnimation.secondaryMove) skip.add(moveAnimation.secondaryMove.from);
   return skip;
 }

@@ -45,7 +45,7 @@ describe("renderBoardSvg", () => {
     expect(countPieceGroups(svg)).toBe(32);
   });
 
-  it("removes a captured piece from the very start of the capture animation", () => {
+  it("keeps a captured piece visible until the capturing piece actually arrives", () => {
     const chess = new Chess("6k1/8/8/8/4b3/8/8/K3R3 w - - 0 1");
     const ply = applyUciMove(chess, "e1e4", 0);
     const descriptor: SceneDescriptor = {
@@ -53,10 +53,31 @@ describe("renderBoardSvg", () => {
       moveAnimation: toMoveAnimation(ply, { start: 0, end: 1 }),
     };
     // Before: white rook e1, white king a1, black king g8, black bishop e4 = 4 pieces.
-    // At t=0 the rook starts moving and the captured bishop is already gone:
-    // static layer has king a1 + king g8 = 2, plus the moving rook = 3.
-    const svg = renderBoardSvg(descriptor, { geometry, t: 0 });
-    expect(countPieceGroups(svg)).toBe(3);
+    // The captured bishop must stay on screen for the whole animation — it
+    // should never disappear before the rook (visually) reaches it, so all
+    // 4 groups are present at the start, middle, and end of the animation.
+    for (const t of [0, 0.5, 1]) {
+      const svg = renderBoardSvg(descriptor, { geometry, t });
+      expect(countPieceGroups(svg)).toBe(4);
+    }
+  });
+
+  it("draws the moving piece after (on top of) the static captured piece it lands on", () => {
+    const chess = new Chess("6k1/8/8/8/4b3/8/8/K3R3 w - - 0 1");
+    const ply = applyUciMove(chess, "e1e4", 0);
+    const descriptor: SceneDescriptor = {
+      position: { fen: ply.fenBefore, orientation: "white" },
+      moveAnimation: toMoveAnimation(ply, { start: 0, end: 1 }),
+    };
+    const svg = renderBoardSvg(descriptor, { geometry, t: 1 });
+    // Distinctive substrings from the cburnett black-bishop and
+    // white-rook path data (src/board/pieces.ts) — the bishop (static,
+    // captured) must appear before the rook (moving, capturing) in
+    // document order, so the rook is painted on top once they coincide.
+    const bishopIndex = svg.indexOf("M9 36c3.4-1 10.1.4");
+    const rookIndex = svg.indexOf("M9 39h27v-3H9zm3-3v-4h21v4zm-1-22V9h4v2h5V9h5v2h5V9h4v5");
+    expect(bishopIndex).toBeGreaterThan(-1);
+    expect(rookIndex).toBeGreaterThan(bishopIndex);
   });
 
   it("renders a highlight rect and an arrow when present", () => {
