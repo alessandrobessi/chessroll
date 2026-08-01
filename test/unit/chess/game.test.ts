@@ -39,7 +39,28 @@ describe("applyUciMove", () => {
     const chess = new Chess("7k/P7/1K6/8/8/8/8/8 w - - 0 1");
     const ply = applyUciMove(chess, "a7a8q", 0);
     expect(ply.promotion).toBe("q");
+    expect(ply.piece).toBe("p");
     expect(ply.flags.promotion).toBe(true);
+  });
+
+  it("reports capturedSquare equal to `to` for an ordinary capture", () => {
+    const chess = new Chess("6k1/8/8/8/4b3/8/8/K3R3 w - - 0 1");
+    const ply = applyUciMove(chess, "e1e4", 0);
+    expect(ply.captured).toBe("b");
+    expect(ply.capturedSquare).toBe("e4");
+  });
+
+  it("reports capturedSquare distinct from `to` for en passant", () => {
+    const chess = new Chess();
+    applyUciMove(chess, "e2e4", 0);
+    applyUciMove(chess, "a7a6", 1);
+    applyUciMove(chess, "e4e5", 2);
+    applyUciMove(chess, "d7d5", 3);
+    const ep = applyUciMove(chess, "e5d6", 4);
+    expect(ep.flags.enPassant).toBe(true);
+    expect(ep.to).toBe("d6");
+    expect(ep.capturedSquare).toBe("d5");
+    expect(ep.captured).toBe("p");
   });
 
   it("rejects a malformed UCI string", () => {

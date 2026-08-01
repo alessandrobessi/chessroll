@@ -31,6 +31,16 @@ export interface Ply {
   uci: string;
   from: Square;
   to: Square;
+  /** Type of the piece that moved, before promotion resolves. */
+  piece: PieceSymbol;
+  /** Type of the captured piece, if any (including en passant). */
+  captured?: PieceSymbol;
+  /**
+   * Square the captured piece occupied before the capture. Equal to `to`
+   * for every capture except en passant, where the captured pawn sits on
+   * the same file as `to` but the same rank as `from`.
+   */
+  capturedSquare?: Square;
   promotion?: PieceSymbol;
   fenBefore: string;
   fenAfter: string;

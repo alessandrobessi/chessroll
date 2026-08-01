@@ -1,4 +1,4 @@
-import type { Chess, Move } from "chess.js";
+import type { Chess, Move, Square } from "chess.js";
 import { InvalidChessInputError } from "../utils/errors.js";
 import { sideFromColor, type Ply } from "./types.js";
 
@@ -6,6 +6,17 @@ function fullmoveNumberFromFen(fen: string): number {
   const field = fen.trim().split(/\s+/)[5];
   const parsed = field === undefined ? NaN : Number.parseInt(field, 10);
   return Number.isFinite(parsed) ? parsed : 1;
+}
+
+/**
+ * The square a captured piece occupied before the capture. Equal to `to`
+ * for every capture except en passant, where the captured pawn sits on the
+ * same file as `to` but the same rank as `from`.
+ */
+function capturedSquare(move: Move): Square | undefined {
+  if (!move.captured) return undefined;
+  if (!move.isEnPassant()) return move.to;
+  return (move.to[0]! + move.from[1]!) as Square;
 }
 
 export function toPly(move: Move, index: number): Ply {
@@ -17,6 +28,9 @@ export function toPly(move: Move, index: number): Ply {
     uci: move.lan,
     from: move.from,
     to: move.to,
+    piece: move.piece,
+    captured: move.captured,
+    capturedSquare: capturedSquare(move),
     promotion: move.promotion,
     fenBefore: move.before,
     fenAfter: move.after,
