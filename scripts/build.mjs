@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { cp, mkdir, rm } from "node:fs/promises";
+import { cp, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -29,12 +29,8 @@ async function buildRenderer() {
     sourcemap: true,
   });
 
-  await mkdir(`${root}renderer/dist/assets/fonts`, { recursive: true });
   await cp(`${root}renderer/index.html`, `${root}renderer/dist/index.html`);
   await cp(`${root}renderer/renderer.css`, `${root}renderer/dist/renderer.css`);
-  await cp(`${root}renderer/assets/fonts`, `${root}renderer/dist/assets/fonts`, {
-    recursive: true,
-  });
 }
 
 async function main() {
