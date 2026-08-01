@@ -2,3 +2,8 @@ dist/
 renderer/dist/
 coverage/
 pnpm-lock.yaml
+
+# Governing spec docs — preserve their authored formatting verbatim.
+AGENTS.md
+BLUEPRINT.md
+ROADMAP.md
