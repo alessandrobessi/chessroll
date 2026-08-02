@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  resolveAutoOptions,
   resolveOptions,
   type PuzzleRenderOptions,
   type RenderOptions,
@@ -72,12 +73,12 @@ describe("resolveOptions", () => {
   });
 
   it("rejects an unimplemented --template", async () => {
-    // "auto" is permanently out of scope (explicit product decision, not a
-    // template-in-progress), so unlike the other names here it'll never
-    // need to move once implemented — a stable example to test against.
-    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "auto" })).rejects.toThrow(
-      CliArgumentError,
-    );
+    // A deliberately made-up name, not a real template ever planned — a
+    // stable example to test against, unlike a real in-progress template
+    // name that'll eventually need to move once it ships.
+    await expect(
+      resolveOptions({ fen: PUZZLE_FEN, template: "not-a-real-template" }),
+    ).rejects.toThrow(CliArgumentError);
   });
 
   it("accepts --template puzzle explicitly", async () => {
@@ -174,6 +175,47 @@ describe("resolveOptions", () => {
     }
     expect(options.game.plies).toHaveLength(4);
     expect(options.moveOverride).toBe(2);
+  });
+
+  it("rejects --fen for the auto template", async () => {
+    await expect(resolveAutoOptions({ fen: PUZZLE_FEN, template: "auto" })).rejects.toThrow(
+      CliArgumentError,
+    );
+  });
+
+  it("rejects a .fen input for the auto template", async () => {
+    await expect(resolveAutoOptions({ input: "position.fen", template: "auto" })).rejects.toThrow(
+      CliArgumentError,
+    );
+  });
+
+  it("resolves a .pgn input for the auto template, defaulting the output to a sibling directory", async () => {
+    const pgnPath = join(dir, "game.pgn");
+    await writeFile(pgnPath, "1. e4 e5 2. Nf3 Nc6 *", "utf8");
+    const options = await resolveAutoOptions({ input: pgnPath, template: "auto" });
+    expect(options.template).toBe("auto");
+    expect(options.game.plies).toHaveLength(4);
+    expect(options.output).toBe(join(dir, "game-auto"));
+    expect(options.maxPerCategory).toBe(3);
+  });
+
+  it("propagates a custom --max-per-category for auto", async () => {
+    const pgnPath = join(dir, "game.pgn");
+    await writeFile(pgnPath, "1. e4 e5 2. Nf3 Nc6 *", "utf8");
+    const options = await resolveAutoOptions({
+      input: pgnPath,
+      template: "auto",
+      maxPerCategory: 5,
+    });
+    expect(options.maxPerCategory).toBe(5);
+  });
+
+  it("resolveOptions() itself refuses --template auto — it must go through resolveAutoOptions()", async () => {
+    const pgnPath = join(dir, "game.pgn");
+    await writeFile(pgnPath, "1. e4 e5 *", "utf8");
+    await expect(resolveOptions({ input: pgnPath, template: "auto" })).rejects.toThrow(
+      CliArgumentError,
+    );
   });
 
   it("rejects specifying both --depth and --nodes", async () => {

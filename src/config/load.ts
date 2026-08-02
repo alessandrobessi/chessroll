@@ -4,10 +4,11 @@ import { loadFen } from "../chess/fen.js";
 import { loadPgn } from "../chess/pgn.js";
 import type { ChessGame, Side } from "../chess/types.js";
 import { CliArgumentError, InputNotFoundError } from "../utils/errors.js";
-import { defaultOutputPath } from "../utils/paths.js";
+import { defaultOutputDir, defaultOutputPath } from "../utils/paths.js";
 import { DEFAULTS } from "./defaults.js";
 
-export type TemplateName = "puzzle" | "blunder" | "brilliant" | "replay" | "game60" | "guess";
+export type TemplateName =
+  "puzzle" | "blunder" | "brilliant" | "replay" | "game60" | "guess" | "auto";
 
 const IMPLEMENTED_TEMPLATES: readonly TemplateName[] = [
   "puzzle",
@@ -16,6 +17,7 @@ const IMPLEMENTED_TEMPLATES: readonly TemplateName[] = [
   "replay",
   "game60",
   "guess",
+  "auto",
 ];
 
 export interface CliFlags {
@@ -36,6 +38,7 @@ export interface CliFlags {
   multipv?: number;
   countdown?: number;
   target?: number;
+  maxPerCategory?: number;
   showEval?: boolean;
   coordinates?: boolean;
   sound?: boolean;
@@ -113,6 +116,18 @@ export type RenderOptions =
   | Game60RenderOptions
   | GuessRenderOptions;
 
+/**
+ * Unlike every RenderOptions variant above, auto produces multiple videos
+ * from one PGN — `output` here names a DIRECTORY, not a file, so it's kept
+ * out of the single-video RenderOptions union entirely (renderAutoVideos()
+ * has its own, differently-shaped entry point from renderVideo()).
+ */
+export interface AutoRenderOptions extends CommonRenderOptions {
+  template: "auto";
+  game: ChessGame;
+  maxPerCategory: number;
+}
+
 function resolveTemplate(flags: CliFlags): TemplateName {
   const template = flags.template ?? "puzzle";
   if (!IMPLEMENTED_TEMPLATES.includes(template as TemplateName)) {
@@ -184,6 +199,7 @@ async function resolvePuzzleOptions(flags: CliFlags): Promise<PuzzleRenderOption
 async function resolvePgnGame(
   flags: CliFlags,
   templateLabel: string,
+  defaultOutput: (inputPath: string) => string = defaultOutputPath,
 ): Promise<{ game: ChessGame; output: string }> {
   if (flags.fen !== undefined) {
     throw new CliArgumentError(`The ${templateLabel} template takes a PGN game, not --fen.`);
@@ -201,7 +217,7 @@ async function resolvePgnGame(
       `"${flags.input}" contains no moves to analyze for ${templateLabel}.`,
     );
   }
-  const output = flags.output ?? defaultOutputPath(flags.input);
+  const output = flags.output ?? defaultOutput(flags.input);
   return { game, output };
 }
 
@@ -240,6 +256,26 @@ async function resolveGuessOptions(flags: CliFlags): Promise<GuessRenderOptions>
   return { ...commonOptions(flags, output), template: "guess", game, moveOverride: flags.move };
 }
 
+/**
+ * Auto has its own resolver/entry point (renderAutoVideos(), not
+ * renderVideo()) since it produces multiple videos rather than one —
+ * called directly by cli.ts when --template auto is passed, never through
+ * resolveOptions() below (whose RenderOptions return type deliberately
+ * excludes it).
+ */
+export async function resolveAutoOptions(flags: CliFlags): Promise<AutoRenderOptions> {
+  if (flags.depth !== undefined && flags.nodes !== undefined) {
+    throw new CliArgumentError("Specify only one of --depth or --nodes, not both");
+  }
+  const { game, output } = await resolvePgnGame(flags, "auto", defaultOutputDir);
+  return {
+    ...commonOptions(flags, output),
+    template: "auto",
+    game,
+    maxPerCategory: flags.maxPerCategory ?? DEFAULTS.maxPerCategory,
+  };
+}
+
 /** Merges CLI flags with defaults, validating cross-field constraints. */
 export async function resolveOptions(flags: CliFlags): Promise<RenderOptions> {
   const template = resolveTemplate(flags);
@@ -260,5 +296,9 @@ export async function resolveOptions(flags: CliFlags): Promise<RenderOptions> {
       return resolveGame60Options(flags);
     case "guess":
       return resolveGuessOptions(flags);
+    case "auto":
+      throw new CliArgumentError(
+        "--template auto uses a different rendering path — call resolveAutoOptions()/renderAutoVideos(), not resolveOptions()/renderVideo().",
+      );
   }
 }

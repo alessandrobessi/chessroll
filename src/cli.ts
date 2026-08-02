@@ -1,7 +1,7 @@
 import { Command, CommanderError } from "commander";
 import pc from "picocolors";
-import { resolveOptions } from "./config/load.js";
-import { renderVideo } from "./index.js";
+import { resolveAutoOptions, resolveOptions } from "./config/load.js";
+import { renderAutoVideos, renderVideo } from "./index.js";
 import { ChessrollError } from "./utils/errors.js";
 
 function parseIntArg(flagName: string): (value: string) => number {
@@ -23,13 +23,13 @@ program
   .version("0.0.0")
   .argument(
     "[input]",
-    "path to a .fen file (puzzle) or .pgn file (blunder, brilliant, replay, game60, guess)",
+    "path to a .fen file (puzzle) or .pgn file (blunder, brilliant, replay, game60, guess, auto)",
   )
   .option("--fen <fen>", "inline FEN string, instead of an input file (puzzle only)")
-  .option("-o, --output <path>", "output MP4 path")
+  .option("-o, --output <path>", "output MP4 path (or, for --template auto, an output DIRECTORY)")
   .option(
     "--template <name>",
-    'content template: "puzzle" (default, needs FEN), "blunder"/"brilliant"/"replay"/"game60"/"guess" (need PGN)',
+    'content template: "puzzle" (default, needs FEN), "blunder"/"brilliant"/"replay"/"game60"/"guess"/"auto" (need PGN)',
   )
   .option(
     "--move <n>",
@@ -56,6 +56,11 @@ program
     "game60's target duration in seconds (default 60; a target, not a hard cap)",
     parseIntArg("--target"),
   )
+  .option(
+    "--max-per-category <n>",
+    "auto: cap videos per category (blunder/brilliant/puzzle), default 3",
+    parseIntArg("--max-per-category"),
+  )
   .option("--show-eval", "reveal the evaluation at payoff")
   .option("--no-eval", "never show the evaluation")
   .option("--coordinates", "show board coordinates")
@@ -74,7 +79,7 @@ program
     const showEval =
       cliOptions.showEval === true ? true : cliOptions.eval === false ? false : undefined;
 
-    const options = await resolveOptions({
+    const flags = {
       input,
       fen: cliOptions.fen as string | undefined,
       output: cliOptions.output as string | undefined,
@@ -92,6 +97,7 @@ program
       multipv: cliOptions.multipv as number | undefined,
       countdown: cliOptions.countdown as number | undefined,
       target: cliOptions.target as number | undefined,
+      maxPerCategory: cliOptions.maxPerCategory as number | undefined,
       showEval,
       coordinates: cliOptions.coordinates as boolean | undefined,
       sound: cliOptions.sound as boolean | undefined,
@@ -99,7 +105,31 @@ program
       cache: cliOptions.cache as boolean | undefined,
       verbose: cliOptions.verbose as boolean | undefined,
       quiet: cliOptions.quiet as boolean | undefined,
-    });
+    };
+
+    if (flags.template === "auto") {
+      const options = await resolveAutoOptions(flags);
+
+      if (!options.quiet) {
+        console.log(pc.dim(`Rendering auto -> ${options.output}/`));
+      }
+
+      const result = await renderAutoVideos(options);
+
+      if (!options.quiet) {
+        for (const video of result.videos) {
+          console.log(
+            pc.green(
+              `Wrote ${video.outputPath} (${video.frameCount} frames, ${video.durationSeconds.toFixed(1)}s)`,
+            ),
+          );
+        }
+        console.log(pc.dim(`${result.videos.length} video(s) in ${result.outputDir}`));
+      }
+      return;
+    }
+
+    const options = await resolveOptions(flags);
 
     if (!options.quiet) {
       console.log(pc.dim(`Rendering ${options.template} -> ${options.output}`));

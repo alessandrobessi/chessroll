@@ -6,3 +6,10 @@ export function defaultOutputPath(inputPath: string): string {
   const base = basename(inputPath, ext);
   return join(dirname(inputPath), `${base}.mp4`);
 }
+
+/** "game.pgn" -> "game-auto/" — a directory, since --template auto writes multiple videos. */
+export function defaultOutputDir(inputPath: string): string {
+  const ext = extname(inputPath);
+  const base = basename(inputPath, ext);
+  return join(dirname(inputPath), `${base}-auto`);
+}

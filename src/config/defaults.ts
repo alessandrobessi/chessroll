@@ -9,6 +9,7 @@ export const DEFAULTS = {
   multiPv: 1,
   countdownSeconds: 5,
   targetSeconds: 60,
+  maxPerCategory: 3,
   showEval: false,
   coordinates: false,
   sound: true,

@@ -8,7 +8,7 @@ Chessroll is a deterministic TypeScript/Node CLI that turns PGN games and FEN po
 PGN / FEN → chess model → Stockfish analysis → story → scene timeline → renderAtTime(t) → MP4
 ```
 
-**Status: all six templates working end-to-end — `puzzle`, `blunder`, `brilliant`, `replay`, `game60`, and `guess`.** This is not yet the full product described in [`ROADMAP.md`](./ROADMAP.md)/[`BLUEPRINT.md`](./BLUEPRINT.md); see [Roadmap](#roadmap) below for exactly what's built versus planned.
+**Status: all seven templates working end-to-end — `puzzle`, `blunder`, `brilliant`, `replay`, `game60`, `guess`, and `auto`.** This is not yet the full product described in [`ROADMAP.md`](./ROADMAP.md)/[`BLUEPRINT.md`](./BLUEPRINT.md); see [Roadmap](#roadmap) below for exactly what's built versus planned.
 
 ## Demo
 
@@ -59,6 +59,7 @@ Every step is inspectable independently — see [Debugging](#debugging).
 | `game60`    | PGN   | ✅ done | Full game bounded to a target duration (`--target`, default 60s — a target, not a hard cap). Same move-classification/header/result logic as `replay`, but budget-scaled: every move's duration is proportionally compressed to fit, uniformly capped so a short game is never artificially padded out. Only critical moments pause; replay's "swing" pause is dropped to keep pacing tight.                                                                              |
 | `guess`     | PGN   | ✅ done | Auto-detects (or `--move` forces) the game's most decisive moment — no severity threshold, any real decision is a fair prompt → hook → lead-in → freeze → "you are [player]" → "what do you play?" → countdown → reveal → the actual move animates → an honest engine comparison ("matches Stockfish's top choice" or "Stockfish preferred X instead" — never claims the move was objectively best unless the engine agrees) → the real game's own continuation → payoff. |
 | `brilliant` | PGN   | ✅ done | Auto-detects (or `--move` forces) the game's standout move — a near-unique best move or a material sacrifice that still wins — → hook → lead-in → freeze → "X to move?" → countdown → oxblood reveal → the move animates → forced continuation proving the point → payoff (`!`/`!!` annotation).                                                                                                                                                                          |
+| `auto`      | PGN   | ✅ done | One PGN in, as many videos as the game supports out: a full `replay`, one `blunder` video per detected blunder, one `brilliant` video per detected standout move, and a `puzzle` video ("find the best move here?") for every other significant swing not already covered — each category capped independently by `--max-per-category` (default 3). `-o`/`--output` names a DIRECTORY here, not a file — see the CLI section below.                                       |
 
 ## Quick start
 
@@ -120,6 +121,16 @@ node dist/cli.js test/fixtures/guess-game.pgn --template guess --move 13 -o forc
 
 `guess` has no minimum-severity threshold for auto-detection (unlike `blunder`/`brilliant`) — every ply is a fair "what would you have played?" prompt, so it always picks the single largest-magnitude moment in the game rather than ever failing to find a "qualifying" one.
 
+### PGN example (`auto`)
+
+```bash
+node dist/cli.js test/fixtures/replay-game.pgn --template auto -o replay-game-auto/ --show-eval --coordinates
+# Loosen (or tighten) how many videos per category:
+node dist/cli.js test/fixtures/replay-game.pgn --template auto --max-per-category 5 -o replay-game-auto/
+```
+
+`auto` is the only template where `-o`/`--output` names a directory rather than a single MP4 — it produces `replay.mp4` plus a `blunder-<ply>-<san>.mp4`/`brilliant-<ply>-<san>.mp4`/`puzzle-<ply>-<san>.mp4` per significant moment (default output directory: `<input-basename>-auto/`). A move already turned into its own blunder/brilliant video never also becomes a near-duplicate puzzle video — puzzles only cover significant moments no other video already features.
+
 ## Installation
 
 Requirements:
@@ -152,12 +163,12 @@ Chessroll discovers `stockfish` on `PATH` by default; override per run with `--e
 chessroll <input> [options]
 
 Input:
-  <input>                 .fen file (puzzle) or .pgn file (blunder, brilliant, replay, game60, guess)
+  <input>                 .fen file (puzzle) or .pgn file (blunder, brilliant, replay, game60, guess, auto)
   --fen <fen>              inline FEN, instead of an input file (puzzle only)
 
 Options:
-  -o, --output <path>      output MP4 path (default: <input basename>.mp4)
-  --template <name>        "puzzle" (default, needs FEN), "blunder"/"brilliant"/"replay"/"game60"/"guess" (need PGN)
+  -o, --output <path>      output MP4 path (default: <input basename>.mp4); a DIRECTORY for --template auto
+  --template <name>        "puzzle" (default, needs FEN), "blunder"/"brilliant"/"replay"/"game60"/"guess"/"auto" (need PGN)
   --move <n>                1-based ply to force as the featured move (blunder/brilliant/guess only)
   --orientation <side>      white | black | auto
   --fps <n>                  frames per second (default 30)
@@ -168,9 +179,10 @@ Options:
   --nodes <n>                 search node limit (mutually exclusive with --depth)
   --threads <n>                engine threads (default 1)
   --hash <mb>                   engine hash size in MB (default 128)
-  --multipv <n>                  engine MultiPV (default 1; brilliant auto-raises to >= 2)
-  --countdown <seconds>          puzzle/blunder/brilliant/guess solve countdown (default 5; not used by replay/game60)
+  --multipv <n>                  engine MultiPV (default 1; brilliant/auto auto-raise to >= 2)
+  --countdown <seconds>          puzzle/blunder/brilliant/guess/auto solve countdown (default 5; not used by replay/game60)
   --target <seconds>              game60's target duration (default 60 — a target, not a hard cap)
+  --max-per-category <n>          auto: cap videos per category (blunder/brilliant/puzzle), default 3
   --show-eval / --no-eval         reveal the evaluation (number + a left-of-board bar) (default hidden)
   --coordinates / --no-coordinates external file/rank labels outside the board (default hidden)
   --sound / --no-sound              synthesized move/capture/check/checkmate/countdown/reveal cues (default on)
@@ -220,7 +232,7 @@ The board squares/overlays use Chessroll's own tokens above. Pieces are [lichess
 flowchart TD
     A[PGN / FEN] --> B["chess.js normalization<br/>(src/chess)"]
     B --> C["Stockfish UCI analysis<br/>(src/engine)"]
-    C --> D["Story construction<br/>(src/story: puzzle.ts, blunder.ts, brilliant.ts, replay.ts, game60.ts, guess.ts)"]
+    C --> D["Story construction<br/>(src/story: puzzle.ts, blunder.ts, brilliant.ts, replay.ts, game60.ts, guess.ts, auto.ts)"]
     D --> E["SceneTimeline<br/>(src/scene)"]
     E --> F["Board/overlay markup<br/>(src/board/render.ts)"]
     F --> G["Chromium page<br/>renderAtTime(t) per frame<br/>(renderer/ + src/video)"]
@@ -237,7 +249,7 @@ src/
   cli.ts, debug-cli.ts, index.ts   entrypoints + renderVideo() orchestrator
   chess/     PGN/FEN loading, normalized Ply/ChessGame model
   engine/    Stockfish UCI, normalization, disk cache, analyzeGame()
-  story/     puzzle.ts, blunder.ts, brilliant.ts, replay.ts, game60.ts, guess.ts, shared.ts — chess+analysis -> SceneTimeline
+  story/     puzzle.ts, blunder.ts, brilliant.ts, replay.ts, game60.ts, guess.ts, auto.ts, shared.ts — chess+analysis -> SceneTimeline
   scene/     pure timeline types, interpolation, stateAtTime()
   board/     geometry, theme, cburnett piece set, moves, arrows, render.ts
   audio/     cue types (move/capture/check/checkmate/countdown-tick/reveal), synthesis params
@@ -267,15 +279,15 @@ node dist/debug-cli.js test/fixtures/puzzle.fen --template puzzle --time 7.5 --o
 pnpm typecheck && pnpm lint && pnpm format
 pnpm test:unit          # pure logic, no external processes
 pnpm test:integration   # real Stockfish / real Chromium via Playwright
-pnpm test:e2e           # full-pipeline acceptance gates (puzzle, blunder, brilliant, replay, game60, guess)
-pnpm test               # everything — 274 tests as of this writing
+pnpm test:e2e           # full-pipeline acceptance gates (puzzle, blunder, brilliant, replay, game60, guess, auto)
+pnpm test               # everything — 287 tests as of this writing
 ```
 
 Chess-correctness fixtures (`test/fixtures/`) — castling both directions, en passant, promotion/underpromotion, checkmate, stalemate, and the puzzle/blunder/brilliant/replay/game60/guess demo positions — are each verified programmatically against chess.js (and, for the demo fixtures, against the real Stockfish binary) rather than hand-derived. This caught a real bug during development: chess.js's own `isCapture()` excludes en passant, which would have produced an incorrect `Ply.flags.capture`.
 
 ## GitHub Pages
 
-[**alessandrobessi.github.io/chessroll**](https://alessandrobessi.github.io/chessroll/) — a static showcase page (`site/`) in the same visual identity as the rendered videos: all five templates' demos with source FEN/PGN shown alongside each, how-it-works, CLI quick start, and a static architecture pipeline diagram (no JS framework, no CDN — plain HTML/CSS, `<video preload="none" poster controls>` for click-to-play without eager-loading five MP4s).
+[**alessandrobessi.github.io/chessroll**](https://alessandrobessi.github.io/chessroll/) — a static showcase page (`site/`) in the same visual identity as the rendered videos: six templates' demos with source FEN/PGN shown alongside each (`auto` isn't shown here — it produces a variable number of files per game, which doesn't fit the site's one-poster-one-video card layout), how-it-works, CLI quick start, and a static architecture pipeline diagram (no JS framework, no CDN — plain HTML/CSS, `<video preload="none" poster controls>` for click-to-play without eager-loading every MP4).
 
 Deployed by [`.github/workflows/pages.yml`](.github/workflows/pages.yml) on every push to `main`, via the official minimal-permissions (`contents: read`, `pages: write`, `id-token: write`) Actions deployment flow. It packages the site against the demo assets **already committed to the repo** — it never re-renders anything, so it needs no Stockfish/FFmpeg/Chromium. Re-rendering-and-validating the canonical demos in CI is `demo.yml`'s job, still on the roadmap.
 
@@ -288,7 +300,7 @@ Done (this repository, current state):
 - Normalized chess model (FEN + PGN), verified special-move fixtures
 - Deterministic SVG board/overlay renderer, lichess's cburnett piece set
 - Stockfish UCI integration, score normalization, disk cache
-- `puzzle`, `blunder`, `brilliant`, `replay`, `game60`, and `guess` templates, full CLI + debug CLI
+- `puzzle`, `blunder`, `brilliant`, `replay`, `game60`, `guess`, and `auto` templates, full CLI + debug CLI
 - External board coordinates (`--coordinates`), off by default
 - An evaluation bar left of the board and player name/rating headers (`replay`/`game60`), whenever `evaluation` is shown
 - Per-move quality badges (`replay`/`game60`) — blunder/inaccuracy/great/brilliant marked directly on the destination square, chess.com/lichess-style, plus each player's own accuracy % at the outro
@@ -296,11 +308,11 @@ Done (this repository, current state):
 - Synthesized sound design (`src/audio/`) — move/capture/check/checkmate/countdown-tick/reveal cues, muxed in as AAC, on by default (`--no-sound` to mute)
 - Canonical demo assets for all six working templates (`demo/puzzle/`, `demo/blunder/`, `demo/brilliant/`, `demo/replay/`, `demo/game60/`, `demo/guess/`)
 - A GitHub Pages showcase site (`site/`), deployed by `pages.yml`
-- 274 tests across unit/integration/e2e, including six full-pipeline acceptance gates
+- 287 tests across unit/integration/e2e, including seven full-pipeline acceptance gates
 
 Not yet built — see [`ROADMAP.md`](./ROADMAP.md) and [`BLUEPRINT.md`](./BLUEPRINT.md) for the full spec:
 
-- `auto` template — explicitly out of scope, dropped by product decision
+- Note: those documents' own "future `--auto`" sections describe an earlier, abandoned design (analyze the whole game, then auto-select and render a single best story) — the `auto` actually shipped here instead produces as many videos as the game supports (a replay plus one video per detected blunder/brilliant/other-significant-moment), a deliberate, explicit product-direction change.
 - The rest of CI (`ci.yml` for lint/test/build, `demo.yml` to re-render and validate the canonical demos automatically)
 - Visual-regression testing and a finalized visual pass (current board square colors are placeholders, see [Visual identity](#visual-identity))
 
