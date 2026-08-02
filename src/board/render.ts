@@ -12,7 +12,7 @@ import { renderArrow, type ArrowElement } from "./arrows.js";
 import { squareColor, squareToPoint, squareToRect, type BoardGeometry } from "./geometry.js";
 import type { MoveAnimation } from "./moves.js";
 import { pieceTypeFromSymbol, renderPiece, type Piece } from "./pieces.js";
-import { COLORS, FONT_FAMILY } from "./theme.js";
+import { BADGE_FONT_FAMILY, COLORS, FONT_FAMILY } from "./theme.js";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
 
@@ -108,11 +108,12 @@ function renderSquares(geometry: BoardGeometry): string {
 }
 
 /**
- * Chess.com/lichess-style move-quality colors — muted to fit Chessroll's
- * own paper-and-ink palette rather than those platforms' saturated
- * defaults. "blunder" reuses COLORS.accent (the same oxblood already used
- * for origin/destination highlights elsewhere), the other three are new,
- * equally muted, tones distinct enough to read at a glance.
+ * Square-highlight tint per move-quality tier — muted to fit Chessroll's
+ * own paper-and-ink board palette. "blunder" reuses COLORS.accent (the
+ * same oxblood already used for origin/destination highlights elsewhere),
+ * the other three are new, equally muted, tones distinct enough to read
+ * at a glance. The badge circle (below) is deliberately bolder/more
+ * saturated than this — the square wash stays quiet, the badge pops.
  */
 const MOVE_QUALITY_COLOR: Record<MoveQualityTier, string> = {
   blunder: COLORS.accent,
@@ -125,6 +126,14 @@ const HIGHLIGHT_COLOR: Record<HighlightElement["style"], string> = {
   origin: COLORS.accent,
   destination: COLORS.accent,
   ...MOVE_QUALITY_COLOR,
+};
+
+/** Bold, saturated badge colors — chess.com/lichess-style pop, deliberately more vivid than the muted square tint above. */
+const BADGE_COLOR: Record<MoveQualityTier, string> = {
+  blunder: "#D32F2F",
+  inaccuracy: "#F2994A",
+  great: "#27AE60",
+  brilliant: "#17A2B8",
 };
 
 function renderHighlights(
@@ -156,11 +165,11 @@ function renderMoveQualityBadge(
   const radius = geometry.squareSize * 0.24;
   const cx = rect.x + rect.width - radius * 0.9;
   const cy = rect.y + radius * 0.9;
-  const fill = MOVE_QUALITY_COLOR[badge.tier];
+  const fill = BADGE_COLOR[badge.tier];
   const fontSize = radius * 1.05;
   return (
     `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${fill}" stroke="${COLORS.background}" stroke-width="2" />` +
-    `<text x="${cx}" y="${cy}" font-family="${FONT_FAMILY}" font-size="${fontSize}" ` +
+    `<text x="${cx}" y="${cy}" font-family="${BADGE_FONT_FAMILY}" font-size="${fontSize}" ` +
     `font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">${badge.glyph}</text>`
   );
 }

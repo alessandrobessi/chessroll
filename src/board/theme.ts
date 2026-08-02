@@ -25,6 +25,9 @@ export const COLORS = {
 // serif fallback everywhere else.
 export const FONT_FAMILY = '"Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif';
 
+/** Move-quality badges (src/board/render.ts) use a bold sans-serif, deliberately distinct from FONT_FAMILY's editorial serif — a small glyph in a circle reads better without serifs at that size. */
+export const BADGE_FONT_FAMILY = '"Helvetica Neue", Arial, system-ui, sans-serif';
+
 /** Default canvas — 1080x1920 per AGENTS.md/ROADMAP.md non-negotiables. */
 export const CANVAS = {
   width: 1080,
