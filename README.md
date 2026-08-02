@@ -8,7 +8,7 @@ Chessroll is a deterministic TypeScript/Node CLI that turns PGN games and FEN po
 PGN / FEN → chess model → Stockfish analysis → story → scene timeline → renderAtTime(t) → MP4
 ```
 
-**Status: five templates working end-to-end — `puzzle`, `blunder`, `brilliant`, `replay`, and `game60`.** This is not yet the full product described in [`ROADMAP.md`](./ROADMAP.md)/[`BLUEPRINT.md`](./BLUEPRINT.md); see [Roadmap](#roadmap) below for exactly what's built versus planned.
+**Status: all six templates working end-to-end — `puzzle`, `blunder`, `brilliant`, `replay`, `game60`, and `guess`.** This is not yet the full product described in [`ROADMAP.md`](./ROADMAP.md)/[`BLUEPRINT.md`](./BLUEPRINT.md); see [Roadmap](#roadmap) below for exactly what's built versus planned.
 
 ## Demo
 
@@ -19,10 +19,10 @@ See these live at [alessandrobessi.github.io/chessroll](https://alessandrobessi.
 | [![Puzzle demo — find the move, mate in 2](demo/puzzle/poster.png)](demo/puzzle/demo.mp4)                                                                       | [![Blunder demo — spot the mistake](demo/blunder/poster.png)](demo/blunder/demo.mp4)                                                                        | [![Brilliant demo — a forced-mate queen sacrifice](demo/brilliant/poster.png)](demo/brilliant/demo.mp4)                                               |
 | [`demo/puzzle/position.fen`](demo/puzzle/position.fen) — a mate-in-2 rook "staircase": find the move, countdown, oxblood reveal, forced continuation to `Rh8#`. | [`demo/blunder/game.pgn`](demo/blunder/game.pgn) — an original short game where `15...Nxe4??` opens the diagonal to a hanging queen, punished by `16.Bxd8`. | [`demo/brilliant/game.pgn`](demo/brilliant/game.pgn) — a constructed smothered-mate position: `1.Qg8+!!` sacrifices the queen, forcing `Rxg8 2.Nf7#`. |
 
-| Replay                                                                                                                                                             | Game60                                                                                                                                                                                               |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [![Replay demo — a full game with a real blunder](demo/replay/poster.png)](demo/replay/demo.mp4)                                                                   | [![Game60 demo — a compressed game with a real blunder](demo/game60/poster.png)](demo/game60/demo.mp4)                                                                                               |
-| [`demo/replay/game.pgn`](demo/replay/game.pgn) — a 32-ply original game, importance-weighted throughout, pausing on the real, engine-verified blunder `14.Qxb6??`. | [`demo/game60/game.pgn`](demo/game60/game.pgn) — a 70-ply original game (rendered here with `--target 25` to make the compression visible), pausing on the real, engine-verified blunder `18.Bg6??`. |
+| Replay                                                                                                                                                             | Game60                                                                                                                                                                                               | Guess the Move                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![Replay demo — a full game with a real blunder](demo/replay/poster.png)](demo/replay/demo.mp4)                                                                   | [![Game60 demo — a compressed game with a real blunder](demo/game60/poster.png)](demo/game60/demo.mp4)                                                                                               | [![Guess demo — an honest engine comparison](demo/guess/poster.png)](demo/guess/demo.mp4)                                                                      |
+| [`demo/replay/game.pgn`](demo/replay/game.pgn) — a 32-ply original game, importance-weighted throughout, pausing on the real, engine-verified blunder `14.Qxb6??`. | [`demo/game60/game.pgn`](demo/game60/game.pgn) — a 70-ply original game (rendered here with `--target 25` to make the compression visible), pausing on the real, engine-verified blunder `18.Bg6??`. | [`demo/guess/game.pgn`](demo/guess/game.pgn) — a 26-ply original game; auto-detects White's 7.e5 and honestly reports that Stockfish actually preferred 7.Nc3. |
 
 Regenerate any of these locally:
 
@@ -33,6 +33,7 @@ node dist/cli.js demo/blunder/game.pgn --template blunder -o demo/blunder/demo.m
 node dist/cli.js demo/brilliant/game.pgn --template brilliant -o demo/brilliant/demo.mp4 --show-eval --coordinates
 node dist/cli.js demo/replay/game.pgn --template replay -o demo/replay/demo.mp4 --show-eval --coordinates
 node dist/cli.js demo/game60/game.pgn --template game60 -o demo/game60/demo.mp4 --show-eval --coordinates --target 25
+node dist/cli.js demo/guess/game.pgn --template guess -o demo/guess/demo.mp4 --show-eval --coordinates
 ```
 
 ## What Chessroll does
@@ -50,14 +51,14 @@ Every step is inspectable independently — see [Debugging](#debugging).
 
 ## Templates
 
-| Template    | Input | Status     | Description                                                                                                                                                                                                                                                                                                                                                                                  |
-| ----------- | ----- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `puzzle`    | FEN   | ✅ done    | Position → prompt → countdown → oxblood reveal → best move → forced continuation → payoff.                                                                                                                                                                                                                                                                                                   |
-| `blunder`   | PGN   | ✅ done    | Auto-detects (or `--move` forces) the game's most severe mistake → hook → quick lead-in → the blunder move plays (unflagged) → freeze → "spot the mistake?" → countdown → reveal (highlighted + evaluation swing) → engine's actual punishment → payoff.                                                                                                                                     |
-| `replay`    | PGN   | ✅ done    | Full game replay, importance-weighted per move (quiet 0.35s → capture 0.50s → check 0.60s → large eval swing 0.90s+pause → critical move 1.20s+pause+`!!`/`??` annotation). Persistent player/rating/event/year header, running move number, optional evaluation, the game's actual result at the end.                                                                                       |
-| `game60`    | PGN   | ✅ done    | Full game bounded to a target duration (`--target`, default 60s — a target, not a hard cap). Same move-classification/header/result logic as `replay`, but budget-scaled: every move's duration is proportionally compressed to fit, uniformly capped so a short game is never artificially padded out. Only critical moments pause; replay's "swing" pause is dropped to keep pacing tight. |
-| `guess`     | PGN   | 🚧 planned | Pause before a selected move, guess what was played.                                                                                                                                                                                                                                                                                                                                         |
-| `brilliant` | PGN   | ✅ done    | Auto-detects (or `--move` forces) the game's standout move — a near-unique best move or a material sacrifice that still wins — → hook → lead-in → freeze → "X to move?" → countdown → oxblood reveal → the move animates → forced continuation proving the point → payoff (`!`/`!!` annotation).                                                                                             |
+| Template    | Input | Status  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------- | ----- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `puzzle`    | FEN   | ✅ done | Position → prompt → countdown → oxblood reveal → best move → forced continuation → payoff.                                                                                                                                                                                                                                                                                                                                                                                |
+| `blunder`   | PGN   | ✅ done | Auto-detects (or `--move` forces) the game's most severe mistake → hook → quick lead-in → the blunder move plays (unflagged) → freeze → "spot the mistake?" → countdown → reveal (highlighted + evaluation swing) → engine's actual punishment → payoff.                                                                                                                                                                                                                  |
+| `replay`    | PGN   | ✅ done | Full game replay, importance-weighted per move (quiet 0.35s → capture 0.50s → check 0.60s → large eval swing 0.90s+pause → critical move 1.20s+pause+`!!`/`??` annotation). Persistent player/rating/event/year header, running move number, optional evaluation, the game's actual result at the end.                                                                                                                                                                    |
+| `game60`    | PGN   | ✅ done | Full game bounded to a target duration (`--target`, default 60s — a target, not a hard cap). Same move-classification/header/result logic as `replay`, but budget-scaled: every move's duration is proportionally compressed to fit, uniformly capped so a short game is never artificially padded out. Only critical moments pause; replay's "swing" pause is dropped to keep pacing tight.                                                                              |
+| `guess`     | PGN   | ✅ done | Auto-detects (or `--move` forces) the game's most decisive moment — no severity threshold, any real decision is a fair prompt → hook → lead-in → freeze → "you are [player]" → "what do you play?" → countdown → reveal → the actual move animates → an honest engine comparison ("matches Stockfish's top choice" or "Stockfish preferred X instead" — never claims the move was objectively best unless the engine agrees) → the real game's own continuation → payoff. |
+| `brilliant` | PGN   | ✅ done | Auto-detects (or `--move` forces) the game's standout move — a near-unique best move or a material sacrifice that still wins — → hook → lead-in → freeze → "X to move?" → countdown → oxblood reveal → the move animates → forced continuation proving the point → payoff (`!`/`!!` annotation).                                                                                                                                                                          |
 
 ## Quick start
 
@@ -109,6 +110,16 @@ node dist/cli.js test/fixtures/game60-game.pgn --template game60 -o game60.mp4 -
 
 `game60` shares `replay`'s move classification and header/result logic, but bounds total duration to `--target` seconds (default 60 — a target, not a hard cap) by uniformly scaling every move's duration down to fit, never padding a short game out artificially. Only critical moments pause; `replay`'s "large swing" pause is dropped to keep pacing tighter.
 
+### PGN example (`guess`)
+
+```bash
+node dist/cli.js test/fixtures/guess-game.pgn --template guess -o guess.mp4 --show-eval --coordinates
+# Force a specific ply instead of auto-detecting (1-based ply index):
+node dist/cli.js test/fixtures/guess-game.pgn --template guess --move 13 -o forced.mp4
+```
+
+`guess` has no minimum-severity threshold for auto-detection (unlike `blunder`/`brilliant`) — every ply is a fair "what would you have played?" prompt, so it always picks the single largest-magnitude moment in the game rather than ever failing to find a "qualifying" one.
+
 ## Installation
 
 Requirements:
@@ -141,13 +152,13 @@ Chessroll discovers `stockfish` on `PATH` by default; override per run with `--e
 chessroll <input> [options]
 
 Input:
-  <input>                 .fen file (puzzle) or .pgn file (blunder, brilliant, replay, game60)
+  <input>                 .fen file (puzzle) or .pgn file (blunder, brilliant, replay, game60, guess)
   --fen <fen>              inline FEN, instead of an input file (puzzle only)
 
 Options:
   -o, --output <path>      output MP4 path (default: <input basename>.mp4)
-  --template <name>        "puzzle" (default, needs FEN), "blunder"/"brilliant"/"replay"/"game60" (need PGN)
-  --move <n>                1-based ply to force as the featured move (blunder/brilliant only)
+  --template <name>        "puzzle" (default, needs FEN), "blunder"/"brilliant"/"replay"/"game60"/"guess" (need PGN)
+  --move <n>                1-based ply to force as the featured move (blunder/brilliant/guess only)
   --orientation <side>      white | black | auto
   --fps <n>                  frames per second (default 30)
   --width <px>               output width (default 1080)
@@ -158,7 +169,7 @@ Options:
   --threads <n>                engine threads (default 1)
   --hash <mb>                   engine hash size in MB (default 128)
   --multipv <n>                  engine MultiPV (default 1; brilliant auto-raises to >= 2)
-  --countdown <seconds>          puzzle/blunder/brilliant solve countdown (default 5; not used by replay/game60)
+  --countdown <seconds>          puzzle/blunder/brilliant/guess solve countdown (default 5; not used by replay/game60)
   --target <seconds>              game60's target duration (default 60 — a target, not a hard cap)
   --show-eval / --no-eval         reveal the evaluation (number + a left-of-board bar) (default hidden)
   --coordinates / --no-coordinates external file/rank labels outside the board (default hidden)
@@ -209,7 +220,7 @@ The board squares/overlays use Chessroll's own tokens above. Pieces are [lichess
 flowchart TD
     A[PGN / FEN] --> B["chess.js normalization<br/>(src/chess)"]
     B --> C["Stockfish UCI analysis<br/>(src/engine)"]
-    C --> D["Story construction<br/>(src/story: puzzle.ts, blunder.ts, brilliant.ts, replay.ts, game60.ts)"]
+    C --> D["Story construction<br/>(src/story: puzzle.ts, blunder.ts, brilliant.ts, replay.ts, game60.ts, guess.ts)"]
     D --> E["SceneTimeline<br/>(src/scene)"]
     E --> F["Board/overlay markup<br/>(src/board/render.ts)"]
     F --> G["Chromium page<br/>renderAtTime(t) per frame<br/>(renderer/ + src/video)"]
@@ -226,7 +237,7 @@ src/
   cli.ts, debug-cli.ts, index.ts   entrypoints + renderVideo() orchestrator
   chess/     PGN/FEN loading, normalized Ply/ChessGame model
   engine/    Stockfish UCI, normalization, disk cache, analyzeGame()
-  story/     puzzle.ts, blunder.ts, brilliant.ts, replay.ts, game60.ts, shared.ts — chess+analysis -> SceneTimeline
+  story/     puzzle.ts, blunder.ts, brilliant.ts, replay.ts, game60.ts, guess.ts, shared.ts — chess+analysis -> SceneTimeline
   scene/     pure timeline types, interpolation, stateAtTime()
   board/     geometry, theme, cburnett piece set, moves, arrows, render.ts
   audio/     cue types (move/capture/check/checkmate/countdown-tick/reveal), synthesis params
@@ -256,11 +267,11 @@ node dist/debug-cli.js test/fixtures/puzzle.fen --template puzzle --time 7.5 --o
 pnpm typecheck && pnpm lint && pnpm format
 pnpm test:unit          # pure logic, no external processes
 pnpm test:integration   # real Stockfish / real Chromium via Playwright
-pnpm test:e2e           # full-pipeline acceptance gates (puzzle, blunder, brilliant, replay, game60)
-pnpm test               # everything — 236 tests as of this writing
+pnpm test:e2e           # full-pipeline acceptance gates (puzzle, blunder, brilliant, replay, game60, guess)
+pnpm test               # everything — 256 tests as of this writing
 ```
 
-Chess-correctness fixtures (`test/fixtures/`) — castling both directions, en passant, promotion/underpromotion, checkmate, stalemate, and the puzzle/blunder/brilliant/replay/game60 demo positions — are each verified programmatically against chess.js (and, for the demo fixtures, against the real Stockfish binary) rather than hand-derived. This caught a real bug during development: chess.js's own `isCapture()` excludes en passant, which would have produced an incorrect `Ply.flags.capture`.
+Chess-correctness fixtures (`test/fixtures/`) — castling both directions, en passant, promotion/underpromotion, checkmate, stalemate, and the puzzle/blunder/brilliant/replay/game60/guess demo positions — are each verified programmatically against chess.js (and, for the demo fixtures, against the real Stockfish binary) rather than hand-derived. This caught a real bug during development: chess.js's own `isCapture()` excludes en passant, which would have produced an incorrect `Ply.flags.capture`.
 
 ## GitHub Pages
 
@@ -277,18 +288,18 @@ Done (this repository, current state):
 - Normalized chess model (FEN + PGN), verified special-move fixtures
 - Deterministic SVG board/overlay renderer, lichess's cburnett piece set
 - Stockfish UCI integration, score normalization, disk cache
-- `puzzle`, `blunder`, `brilliant`, `replay`, and `game60` templates, full CLI + debug CLI
+- `puzzle`, `blunder`, `brilliant`, `replay`, `game60`, and `guess` templates, full CLI + debug CLI
 - External board coordinates (`--coordinates`), off by default
 - An evaluation bar left of the board and player name/rating headers (`replay`/`game60`), whenever `evaluation` is shown
 - Playwright capture → FFmpeg encode pipeline
 - Synthesized sound design (`src/audio/`) — move/capture/check/checkmate/countdown-tick/reveal cues, muxed in as AAC, on by default (`--no-sound` to mute)
-- Canonical demo assets for all five working templates (`demo/puzzle/`, `demo/blunder/`, `demo/brilliant/`, `demo/replay/`, `demo/game60/`)
+- Canonical demo assets for all six working templates (`demo/puzzle/`, `demo/blunder/`, `demo/brilliant/`, `demo/replay/`, `demo/game60/`, `demo/guess/`)
 - A GitHub Pages showcase site (`site/`), deployed by `pages.yml`
-- 239 tests across unit/integration/e2e, including five full-pipeline acceptance gates
+- 256 tests across unit/integration/e2e, including six full-pipeline acceptance gates
 
 Not yet built — see [`ROADMAP.md`](./ROADMAP.md) and [`BLUEPRINT.md`](./BLUEPRINT.md) for the full spec:
 
-- `guess` template (and its demo assets) — `auto` is explicitly out of scope, dropped by product decision
+- `auto` template — explicitly out of scope, dropped by product decision
 - The rest of CI (`ci.yml` for lint/test/build, `demo.yml` to re-render and validate the canonical demos automatically)
 - Visual-regression testing and a finalized visual pass (current board square colors are placeholders, see [Visual identity](#visual-identity))
 

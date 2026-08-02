@@ -23,17 +23,17 @@ program
   .version("0.0.0")
   .argument(
     "[input]",
-    "path to a .fen file (puzzle) or .pgn file (blunder, brilliant, replay, game60)",
+    "path to a .fen file (puzzle) or .pgn file (blunder, brilliant, replay, game60, guess)",
   )
   .option("--fen <fen>", "inline FEN string, instead of an input file (puzzle only)")
   .option("-o, --output <path>", "output MP4 path")
   .option(
     "--template <name>",
-    'content template: "puzzle" (default, needs FEN), "blunder"/"brilliant"/"replay"/"game60" (need PGN)',
+    'content template: "puzzle" (default, needs FEN), "blunder"/"brilliant"/"replay"/"game60"/"guess" (need PGN)',
   )
   .option(
     "--move <n>",
-    "1-based ply to force the featured move, instead of auto-detecting (blunder/brilliant only)",
+    "1-based ply to force the featured move, instead of auto-detecting (blunder/brilliant/guess only)",
     parseIntArg("--move"),
   )
   .option("--orientation <side>", "white | black | auto")
@@ -48,7 +48,7 @@ program
   .option("--multipv <n>", "engine MultiPV", parseIntArg("--multipv"))
   .option(
     "--countdown <seconds>",
-    "puzzle/blunder/brilliant solve countdown (not used by replay/game60)",
+    "puzzle/blunder/brilliant/guess solve countdown (not used by replay/game60)",
     parseIntArg("--countdown"),
   )
   .option(

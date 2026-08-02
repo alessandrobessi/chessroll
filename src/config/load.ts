@@ -7,7 +7,7 @@ import { CliArgumentError, InputNotFoundError } from "../utils/errors.js";
 import { defaultOutputPath } from "../utils/paths.js";
 import { DEFAULTS } from "./defaults.js";
 
-export type TemplateName = "puzzle" | "blunder" | "brilliant" | "replay" | "game60";
+export type TemplateName = "puzzle" | "blunder" | "brilliant" | "replay" | "game60" | "guess";
 
 const IMPLEMENTED_TEMPLATES: readonly TemplateName[] = [
   "puzzle",
@@ -15,6 +15,7 @@ const IMPLEMENTED_TEMPLATES: readonly TemplateName[] = [
   "brilliant",
   "replay",
   "game60",
+  "guess",
 ];
 
 export interface CliFlags {
@@ -97,12 +98,20 @@ export interface Game60RenderOptions extends CommonRenderOptions {
   targetSeconds: number;
 }
 
+export interface GuessRenderOptions extends CommonRenderOptions {
+  template: "guess";
+  game: ChessGame;
+  /** 1-based ply index forcing which move is the guessing target, if given. */
+  moveOverride?: number;
+}
+
 export type RenderOptions =
   | PuzzleRenderOptions
   | BlunderRenderOptions
   | BrilliantRenderOptions
   | ReplayRenderOptions
-  | Game60RenderOptions;
+  | Game60RenderOptions
+  | GuessRenderOptions;
 
 function resolveTemplate(flags: CliFlags): TemplateName {
   const template = flags.template ?? "puzzle";
@@ -226,6 +235,11 @@ async function resolveGame60Options(flags: CliFlags): Promise<Game60RenderOption
   };
 }
 
+async function resolveGuessOptions(flags: CliFlags): Promise<GuessRenderOptions> {
+  const { game, output } = await resolvePgnGame(flags, "guess");
+  return { ...commonOptions(flags, output), template: "guess", game, moveOverride: flags.move };
+}
+
 /** Merges CLI flags with defaults, validating cross-field constraints. */
 export async function resolveOptions(flags: CliFlags): Promise<RenderOptions> {
   const template = resolveTemplate(flags);
@@ -244,5 +258,7 @@ export async function resolveOptions(flags: CliFlags): Promise<RenderOptions> {
       return resolveReplayOptions(flags);
     case "game60":
       return resolveGame60Options(flags);
+    case "guess":
+      return resolveGuessOptions(flags);
   }
 }

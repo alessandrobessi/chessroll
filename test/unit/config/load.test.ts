@@ -72,7 +72,10 @@ describe("resolveOptions", () => {
   });
 
   it("rejects an unimplemented --template", async () => {
-    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "guess" })).rejects.toThrow(
+    // "auto" is permanently out of scope (explicit product decision, not a
+    // template-in-progress), so unlike the other names here it'll never
+    // need to move once implemented — a stable example to test against.
+    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "auto" })).rejects.toThrow(
       CliArgumentError,
     );
   });
@@ -148,6 +151,29 @@ describe("resolveOptions", () => {
       throw new Error(`expected a game60 template, got "${options.template}"`);
     }
     expect(options.targetSeconds).toBe(30);
+  });
+
+  it("rejects --fen for the guess template", async () => {
+    await expect(resolveOptions({ fen: PUZZLE_FEN, template: "guess" })).rejects.toThrow(
+      CliArgumentError,
+    );
+  });
+
+  it("rejects a .fen input for the guess template", async () => {
+    await expect(resolveOptions({ input: "position.fen", template: "guess" })).rejects.toThrow(
+      CliArgumentError,
+    );
+  });
+
+  it("resolves a .pgn input for the guess template, propagating --move", async () => {
+    const pgnPath = join(dir, "game.pgn");
+    await writeFile(pgnPath, "1. e4 e5 2. Nf3 Nc6 *", "utf8");
+    const options = await resolveOptions({ input: pgnPath, template: "guess", move: 2 });
+    if (options.template !== "guess") {
+      throw new Error(`expected a guess template, got "${options.template}"`);
+    }
+    expect(options.game.plies).toHaveLength(4);
+    expect(options.moveOverride).toBe(2);
   });
 
   it("rejects specifying both --depth and --nodes", async () => {
