@@ -50,9 +50,14 @@ describe("game60 pacing against the real engine and the verified fixture", () =>
     expect(relaxedCritical).toBeDefined();
     expect(tightCritical).toBeDefined();
     expect(relaxedCritical!.state.highlights).toEqual([
-      { square: "d3", style: "critical" },
-      { square: "g6", style: "critical" },
+      { square: "d3", style: "blunder" },
+      { square: "g6", style: "blunder" },
     ]);
+    expect(relaxedCritical!.state.moveQualityBadge).toEqual({
+      square: "g6",
+      tier: "blunder",
+      glyph: "??",
+    });
 
     // 60s target comfortably exceeds this game's unscaled pacing (~33s) ->
     // no compression, scale clamps to 1. 20s does not -> genuine compression.
@@ -61,12 +66,13 @@ describe("game60 pacing against the real engine and the verified fixture", () =>
     expect(tight.duration).toBeLessThan(relaxed.duration);
   }, 120_000);
 
-  it("shows the header throughout, with no invented result (the fixture's game is unfinished)", async () => {
+  it("shows the header throughout, with no invented result (the fixture's game is unfinished), plus a real accuracy summary", async () => {
     const analyses = await analyzeGame(engine, game, { depth: 10 });
     const timeline = buildGame60Story(game, analyses, { targetSeconds: 30, showEval: false });
     expect(timeline.segments[0]!.state.title?.text).toBe("C. Ibarra (2210) vs D. Solheim (2190)");
     expect(timeline.segments[0]!.state.title?.compact).toBe(true);
     const outro = timeline.segments[timeline.segments.length - 1]!;
     expect(outro.state.title).toBeUndefined();
+    expect(outro.state.subtitle?.text).toMatch(/^C\. Ibarra \d+\.\d% {3}D\. Solheim \d+\.\d%$/);
   }, 120_000);
 });

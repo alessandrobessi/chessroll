@@ -122,10 +122,13 @@ describe("Gate: chessroll test/fixtures/replay-game.pgn --template replay", () =
       const midTitle = await session.page.locator("#overlay-root .title").textContent();
       expect(midTitle).not.toBe("0-1");
 
-      // The outro shows the real recorded result, emphasized.
+      // The outro shows the real recorded result, emphasized, plus each
+      // player's own accuracy in place of the event/year subtitle.
       await renderAtTime(timeline.duration);
       const finalTitle = await session.page.locator(".title--emphasis").textContent();
       expect(finalTitle).toBe("0-1");
+      const finalSubtitle = await session.page.locator("#overlay-root .subtitle").textContent();
+      expect(finalSubtitle).toMatch(/^A\. Rowan \d+\.\d% {3}B\. Voss \d+\.\d%$/);
     } finally {
       await session.close();
       await rm(rendererDir, { recursive: true, force: true });

@@ -118,6 +118,11 @@ describe("Gate: chessroll test/fixtures/game60-game.pgn --template game60", () =
       expect(highlightCount).toBe(2);
       const moveLabel = await session.page.locator("#overlay-root .move-label").textContent();
       expect(moveLabel).toBe("18. Bg6??");
+      // The move-quality badge circle, rendered directly on the board SVG —
+      // scoped to its own distinctive stroke (the cburnett piece set also
+      // draws plain <circle> elements, e.g. knight eyes).
+      const badgeCount = await session.page.locator('#board-root circle[stroke="#F6F3EC"]').count();
+      expect(badgeCount).toBe(1);
     } finally {
       await session.close();
       await rm(rendererDir, { recursive: true, force: true });

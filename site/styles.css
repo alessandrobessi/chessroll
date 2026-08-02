@@ -9,7 +9,7 @@
   --color-secondary: #6b6b68;
   --color-board-light: #edeae1;
   --color-board-dark: #8b8372;
-  --font-family: system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-family: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --max-width: 1080px;
 }

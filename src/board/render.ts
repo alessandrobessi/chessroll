@@ -3,6 +3,8 @@ import { easeInOutCubic, lerp, progressOf } from "../scene/interpolation.js";
 import type {
   EvaluationElement,
   HighlightElement,
+  MoveQualityBadge,
+  MoveQualityTier,
   SceneDescriptor,
   TextElement,
 } from "../scene/types.js";
@@ -105,10 +107,24 @@ function renderSquares(geometry: BoardGeometry): string {
   return out;
 }
 
+/**
+ * Chess.com/lichess-style move-quality colors — muted to fit Chessroll's
+ * own paper-and-ink palette rather than those platforms' saturated
+ * defaults. "blunder" reuses COLORS.accent (the same oxblood already used
+ * for origin/destination highlights elsewhere), the other three are new,
+ * equally muted, tones distinct enough to read at a glance.
+ */
+const MOVE_QUALITY_COLOR: Record<MoveQualityTier, string> = {
+  blunder: COLORS.accent,
+  inaccuracy: "#A6763A",
+  great: "#3D6B2F",
+  brilliant: "#1F6B8B",
+};
+
 const HIGHLIGHT_COLOR: Record<HighlightElement["style"], string> = {
   origin: COLORS.accent,
   destination: COLORS.accent,
-  critical: COLORS.accent,
+  ...MOVE_QUALITY_COLOR,
 };
 
 function renderHighlights(
@@ -123,6 +139,30 @@ function renderHighlights(
       return `<rect x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" fill="${fill}" opacity="0.35" />`;
     })
     .join("");
+}
+
+/**
+ * A small circular badge in the destination square's top-right corner,
+ * carrying the move's annotation glyph ("??"/"?!"/"!"/"!!") — the same
+ * chess.com/lichess convention of marking blunders/inaccuracies/great/
+ * brilliant moves directly on the board, not just as text underneath it.
+ */
+function renderMoveQualityBadge(
+  badge: MoveQualityBadge | undefined,
+  geometry: BoardGeometry,
+): string {
+  if (!badge) return "";
+  const rect = squareToRect(badge.square, geometry);
+  const radius = geometry.squareSize * 0.24;
+  const cx = rect.x + rect.width - radius * 0.9;
+  const cy = rect.y + radius * 0.9;
+  const fill = MOVE_QUALITY_COLOR[badge.tier];
+  const fontSize = radius * 1.05;
+  return (
+    `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${fill}" stroke="${COLORS.background}" stroke-width="2" />` +
+    `<text x="${cx}" y="${cy}" font-family="${FONT_FAMILY}" font-size="${fontSize}" ` +
+    `font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">${badge.glyph}</text>`
+  );
 }
 
 /**
@@ -244,7 +284,8 @@ export function renderBoardSvg(descriptor: SceneDescriptor, options: RenderOptio
     renderMovingPieces(descriptor.moveAnimation, t, geometry) +
     renderArrows(descriptor.arrows, geometry) +
     (coordinates ? renderCoordinates(geometry, coordinatesReserve) : "") +
-    renderEvaluationBar(descriptor.evaluation, geometry)
+    renderEvaluationBar(descriptor.evaluation, geometry) +
+    renderMoveQualityBadge(descriptor.moveQualityBadge, geometry)
   );
 }
 

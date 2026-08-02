@@ -18,9 +18,12 @@ export const COLORS = {
 // Deliberately a system stack rather than a bundled/self-hosted font for
 // this pass: rendering happens on one pinned local Chromium, so frame-to-
 // frame determinism only requires the same machine to resolve the same
-// font consistently, which system-ui/Helvetica/Arial already guarantee.
-// Self-hosting a specific typeface (e.g. Inter) is a reasonable follow-up.
-export const FONT_FAMILY = 'system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif';
+// font consistently, which named serif fallbacks already guarantee.
+// Self-hosting a specific typeface (e.g. an actual Palatino/Zapf license)
+// is a reasonable follow-up. "Palatino Linotype" resolves on Windows,
+// "Palatino"/"Book Antiqua" on macOS, and Georgia is a widely available
+// serif fallback everywhere else.
+export const FONT_FAMILY = '"Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif';
 
 /** Default canvas — 1080x1920 per AGENTS.md/ROADMAP.md non-negotiables. */
 export const CANVAS = {

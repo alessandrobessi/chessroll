@@ -69,11 +69,11 @@ describe("buildGame60Story: budget/scale math", () => {
 });
 
 describe("buildGame60Story: only critical moments pause", () => {
-  it("gives a swing-classified move no pause (unlike replay), but critical still gets one", () => {
+  it("gives a swing-classified move no pause (unlike replay) but still marks it inline; critical still gets its own pause", () => {
     const analyses = [
       analysis(FENS1[0]!, 0),
       analysis(FENS1[1]!, 10), // e4 (white): swing 10 -> quiet
-      analysis(FENS1[2]!, -190), // e5 (black): swing 200 -> swing (no pause in game60)
+      analysis(FENS1[2]!, -190), // e5 (black): swing 200 -> "great" (marked inline, no pause in game60)
       analysis(FENS1[3]!, 150), // Nf3 (white): swing 340 -> critical (pause + annotation)
       analysis(FENS1[4]!, 140), // Nc6 (black): swing 10 -> quiet
     ];
@@ -83,19 +83,22 @@ describe("buildGame60Story: only critical moments pause", () => {
     // INTRO 1.5 + e4(0.35) + e5(0.90, no pause) + Nf3(1.20) + pause(0.8) + Nc6(0.35) + OUTRO 3.0
     expect(timeline.duration).toBeCloseTo(1.5 + 0.35 + 0.9 + 1.2 + 0.8 + 0.35 + 3.0, 5);
 
-    // Right where replay would show a swing pause (highlight, no motion),
-    // game60 has already moved on to the critical move's own segment.
-    const wouldBeSwingPause = stateAtTime(timeline, 1.5 + 0.35 + 0.5);
-    expect(wouldBeSwingPause.highlights ?? []).toHaveLength(0);
-    expect(wouldBeSwingPause.moveAnimation).toBeDefined(); // e5 is still animating
+    // No separate pause for e5 (still animating throughout its own 0.9s
+    // segment), but that same segment carries the "great" tier inline:
+    // marked on the move itself, at no extra time cost.
+    const e5Move = stateAtTime(timeline, 1.5 + 0.35 + 0.5);
+    expect(e5Move.moveAnimation).toBeDefined();
+    expect(e5Move.moveLabel?.text).toBe("1... e5!");
+    expect(e5Move.highlights).toEqual([{ square: "e5", style: "great" }]);
+    expect(e5Move.moveQualityBadge).toEqual({ square: "e5", tier: "great", glyph: "!" });
 
     // The critical pause itself: highlighted, annotated, no motion.
     const criticalPause = stateAtTime(timeline, 1.5 + 0.35 + 0.9 + 1.2 + 0.4);
-    expect(criticalPause.moveLabel?.text).toBe("2. Nf3!!");
+    expect(criticalPause.moveLabel?.text).toBe("2. Nf3!");
     expect(criticalPause.moveLabel?.emphasis).toBe(true);
     expect(criticalPause.highlights).toEqual([
-      { square: "g1", style: "critical" },
-      { square: "f3", style: "critical" },
+      { square: "g1", style: "great" },
+      { square: "f3", style: "great" },
     ]);
     expect(criticalPause.moveAnimation).toBeUndefined();
   });
@@ -140,5 +143,19 @@ describe("buildGame60Story: header and result", () => {
     const timeline = buildGame60Story(GAME1, analyses, { targetSeconds: 60, showEval: false });
     const outro = stateAtTime(timeline, timeline.duration);
     expect(outro.title).toBeUndefined();
+  });
+
+  it("shows each player's own accuracy at the outro", () => {
+    const headeredGame = loadPgn(
+      '[White "Carlsen"]\n[Black "Nepo"]\n[Result "1-0"]\n\n1. e4 e5 1-0',
+    );
+    const fens = [headeredGame.initialFen, ...headeredGame.plies.map((p) => p.fenAfter)];
+    const analyses = fens.map((fen) => analysis(fen, 0)); // flat eval -> ~100% both sides
+    const timeline = buildGame60Story(headeredGame, analyses, {
+      targetSeconds: 60,
+      showEval: false,
+    });
+    const outro = stateAtTime(timeline, timeline.duration);
+    expect(outro.subtitle?.text).toBe("Carlsen 100.0%   Nepo 100.0%");
   });
 });

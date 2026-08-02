@@ -268,7 +268,7 @@ pnpm typecheck && pnpm lint && pnpm format
 pnpm test:unit          # pure logic, no external processes
 pnpm test:integration   # real Stockfish / real Chromium via Playwright
 pnpm test:e2e           # full-pipeline acceptance gates (puzzle, blunder, brilliant, replay, game60, guess)
-pnpm test               # everything — 256 tests as of this writing
+pnpm test               # everything — 274 tests as of this writing
 ```
 
 Chess-correctness fixtures (`test/fixtures/`) — castling both directions, en passant, promotion/underpromotion, checkmate, stalemate, and the puzzle/blunder/brilliant/replay/game60/guess demo positions — are each verified programmatically against chess.js (and, for the demo fixtures, against the real Stockfish binary) rather than hand-derived. This caught a real bug during development: chess.js's own `isCapture()` excludes en passant, which would have produced an incorrect `Ply.flags.capture`.
@@ -291,11 +291,12 @@ Done (this repository, current state):
 - `puzzle`, `blunder`, `brilliant`, `replay`, `game60`, and `guess` templates, full CLI + debug CLI
 - External board coordinates (`--coordinates`), off by default
 - An evaluation bar left of the board and player name/rating headers (`replay`/`game60`), whenever `evaluation` is shown
+- Per-move quality badges (`replay`/`game60`) — blunder/inaccuracy/great/brilliant marked directly on the destination square, chess.com/lichess-style, plus each player's own accuracy % at the outro
 - Playwright capture → FFmpeg encode pipeline
 - Synthesized sound design (`src/audio/`) — move/capture/check/checkmate/countdown-tick/reveal cues, muxed in as AAC, on by default (`--no-sound` to mute)
 - Canonical demo assets for all six working templates (`demo/puzzle/`, `demo/blunder/`, `demo/brilliant/`, `demo/replay/`, `demo/game60/`, `demo/guess/`)
 - A GitHub Pages showcase site (`site/`), deployed by `pages.yml`
-- 256 tests across unit/integration/e2e, including six full-pipeline acceptance gates
+- 274 tests across unit/integration/e2e, including six full-pipeline acceptance gates
 
 Not yet built — see [`ROADMAP.md`](./ROADMAP.md) and [`BLUEPRINT.md`](./BLUEPRINT.md) for the full spec:
 

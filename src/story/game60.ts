@@ -5,7 +5,16 @@ import type { PositionAnalysis } from "../engine/analysis.js";
 import { evaluationBarFraction, formatEvaluation } from "../engine/normalize.js";
 import { createTimeline, phase } from "../scene/timeline.js";
 import type { SceneDescriptor, SceneSegment, SceneTimeline } from "../scene/types.js";
-import { classifyMoveCategory, headerFor, moveNumberLabel, type MoveCategory } from "./shared.js";
+import {
+  classifyMoveCategory,
+  classifyMoveQuality,
+  formatAccuracySummary,
+  gameAccuracy,
+  headerFor,
+  moveNumberLabel,
+  moveQualityGlyph,
+  type MoveCategory,
+} from "./shared.js";
 
 const INTRO_SECONDS = 1.5;
 const OUTRO_SECONDS = 3.0;
@@ -125,6 +134,7 @@ export function buildGame60Story(
     const ply = game.plies[i]!;
     const after = analyses[i + 1]!;
     const { category, swing, moveSeconds } = plan[i]!;
+    const quality = classifyMoveQuality(ply, swing);
     const label = `${moveNumberLabel(ply)} ${ply.san}`;
     const evaluation: SceneDescriptor["evaluation"] = options.showEval
       ? {
@@ -134,41 +144,60 @@ export function buildGame60Story(
         }
       : undefined;
 
+    // A "swing"-category tier (inaccuracy/great) has no pause of its own in
+    // game60 (unlike replay) to keep pacing tight — it gets marked inline
+    // on its own move segment instead, at no extra time cost. "critical"
+    // tiers (blunder/brilliant) keep their dedicated freeze pause below.
+    const isCriticalPause = category === "critical";
+    const inlineQuality = quality && !isCriticalPause ? quality : undefined;
+    const inlineGlyph = inlineQuality ? moveQualityGlyph(inlineQuality) : "";
+
     push(moveSeconds, {
       position: { fen: ply.fenBefore, orientation },
       moveAnimation: toMoveAnimation(ply, { start: t, end: t + moveSeconds }),
       title: { text: header.title, compact: true },
       subtitle: headerText,
-      moveLabel: { text: label },
+      moveLabel: { text: `${label}${inlineGlyph}`, emphasis: inlineQuality !== undefined },
       evaluation,
+      highlights: inlineQuality ? [{ square: ply.to, style: inlineQuality }] : undefined,
+      moveQualityBadge: inlineQuality
+        ? { square: ply.to, tier: inlineQuality, glyph: inlineGlyph }
+        : undefined,
     });
     cues.push({ time: t, type: cueForPly(ply) });
 
-    if (category === "critical") {
-      const annotation = swing >= 0 ? "!!" : "??";
+    if (isCriticalPause) {
+      const glyph = quality ? moveQualityGlyph(quality) : "";
       push(CRITICAL_PAUSE_SECONDS, {
         position: { fen: ply.fenAfter, orientation },
         title: { text: header.title, compact: true },
         subtitle: headerText,
-        moveLabel: { text: `${label}${annotation}`, emphasis: true },
+        moveLabel: { text: `${label}${glyph}`, emphasis: true },
         evaluation,
-        highlights: [
-          { square: ply.from, style: "critical" },
-          { square: ply.to, style: "critical" },
-        ],
+        highlights: quality
+          ? [
+              { square: ply.from, style: quality },
+              { square: ply.to, style: quality },
+            ]
+          : undefined,
+        moveQualityBadge: quality ? { square: ply.to, tier: quality, glyph } : undefined,
       });
     }
   }
 
   // OUTRO — final position holds; the result only if the PGN actually
-  // recorded a decisive/drawn one (never invent a claim "*" doesn't support).
+  // recorded a decisive/drawn one (never invent a claim "*" doesn't support),
+  // plus each player's own accuracy (always safe to reveal here — the whole
+  // game has already played out by this point).
   const lastPly = game.plies[game.plies.length - 1];
   const finalFen = lastPly?.fenAfter ?? game.initialFen;
   const validResults = new Set(["1-0", "0-1", "1/2-1/2"]);
   const result = game.metadata.result;
+  const accuracySummary = formatAccuracySummary(game.metadata, gameAccuracy(game, analyses));
   push(OUTRO_SECONDS, {
     position: { fen: finalFen, orientation },
     title: result && validResults.has(result) ? { text: result, emphasis: true } : undefined,
+    subtitle: accuracySummary ? { text: accuracySummary } : undefined,
     moveLabel: lastPly ? { text: `${moveNumberLabel(lastPly)} ${lastPly.san}` } : undefined,
   });
 

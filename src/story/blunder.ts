@@ -219,7 +219,7 @@ export function buildBlunderStory(
   // REVEAL — highlight exactly which move it was, evaluation swing dramatized.
   const revealHighlights: HighlightElement[] = [
     { square: candidate.ply.from, style: "origin" },
-    { square: candidate.ply.to, style: "critical" },
+    { square: candidate.ply.to, style: "blunder" },
   ];
   cues.push({ time: t, type: "reveal" });
   push(SWING_SECONDS, {

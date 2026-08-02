@@ -170,7 +170,7 @@ describe("buildBlunderStory", () => {
     const state = stateAtTime(timeline, revealStart);
     expect(state.highlights).toEqual([
       { square: candidate.ply.from, style: "origin" },
-      { square: candidate.ply.to, style: "critical" },
+      { square: candidate.ply.to, style: "blunder" },
     ]);
     expect(state.evaluation?.display).toBe("+3.5");
     expect(state.evaluation?.perspective).toBe("white");

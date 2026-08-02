@@ -1,4 +1,4 @@
-import { Chess, type Color, type PieceSymbol } from "chess.js";
+import { Chess } from "chess.js";
 import { toMoveAnimation } from "../board/moves.js";
 import { COLORS } from "../board/theme.js";
 import { cueForPly, type AudioCue } from "../audio/timeline.js";
@@ -13,6 +13,7 @@ import {
 import { createTimeline, phase } from "../scene/timeline.js";
 import type { SceneDescriptor, SceneSegment, SceneTimeline } from "../scene/types.js";
 import { StoryConstructionError } from "../utils/errors.js";
+import { isSacrifice } from "./shared.js";
 
 const HOOK_SECONDS = 1.0;
 const LEAD_IN_PLY_SECONDS = 0.4;
@@ -32,25 +33,6 @@ const DEFAULT_MIN_ADVANTAGE_CP = 150;
 const DEFAULT_MAX_ALREADY_WINNING_CP = 500;
 /** Slack for "the played move matched the engine's top line's value" (see detectBrilliantMoves). */
 const TOP_MOVE_TOLERANCE_CP = 5;
-
-/**
- * Chessroll's own transparent (not a SEE) sacrifice heuristic, per
- * BLUEPRINT.md §22's explicit instruction not to copy any proprietary
- * "brilliant move" classifier: a move counts as a sacrifice if the piece
- * that just moved is attacked on its new square, and its own value
- * exceeds whatever it captured in this move (so an opponent recapture
- * would net the mover a material loss on this exchange alone).
- */
-const PIECE_VALUE: Record<PieceSymbol, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
-
-function isSacrifice(ply: Ply): boolean {
-  const chess = new Chess(ply.fenAfter);
-  const opponentColor: Color = ply.side === "white" ? "b" : "w";
-  if (!chess.isAttacked(ply.to, opponentColor)) return false;
-  const movedValue = PIECE_VALUE[ply.promotion ?? ply.piece];
-  const capturedValue = ply.captured ? PIECE_VALUE[ply.captured] : 0;
-  return movedValue > capturedValue;
-}
 
 export interface BrilliantCandidate {
   /** 0-based index into game.plies. */

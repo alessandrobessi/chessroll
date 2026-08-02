@@ -50,19 +50,30 @@ describe("replay classification against the real engine and the verified fixture
     expect(critical).toBeDefined();
     expect(critical!.state.moveLabel?.emphasis).toBe(true);
     expect(critical!.state.highlights).toEqual([
-      { square: "b3", style: "critical" },
-      { square: "b6", style: "critical" },
+      { square: "b3", style: "blunder" },
+      { square: "b6", style: "blunder" },
     ]);
+    expect(critical!.state.moveQualityBadge).toEqual({
+      square: "b6",
+      tier: "blunder",
+      glyph: "??",
+    });
     // A genuine, large, White-perspective evaluation collapse.
     expect(critical!.state.evaluation?.display).toMatch(/^-\d/);
   }, 60_000);
 
-  it("shows the header throughout and the recorded result (0-1) at the outro", async () => {
+  it("shows the header throughout, the recorded result (0-1), and both players' accuracy at the outro", async () => {
     const analyses = await analyzeGame(engine, game, { depth: 12 });
     const timeline = buildReplayStory(game, analyses, { showEval: false });
     expect(stateAtTime(timeline, 0).title?.text).toBe("A. Rowan (2100) vs B. Voss (2050)");
     expect(stateAtTime(timeline, 0).subtitle?.text).toBe("Chessroll Fixture Open, 2024");
     const outro = stateAtTime(timeline, timeline.duration);
     expect(outro.title).toEqual({ text: "0-1", emphasis: true });
+    // A. Rowan's own blunder should have dragged their accuracy well below B. Voss's.
+    expect(outro.subtitle?.text).toMatch(/^A\. Rowan \d+\.\d% {3}B\. Voss \d+\.\d%$/);
+    const [, whiteAccuracy, blackAccuracy] = outro.subtitle!.text.match(
+      /^A\. Rowan (\d+\.\d)% {3}B\. Voss (\d+\.\d)%$/,
+    )!;
+    expect(Number(whiteAccuracy)).toBeLessThan(Number(blackAccuracy));
   }, 60_000);
 });

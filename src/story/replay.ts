@@ -5,7 +5,16 @@ import type { PositionAnalysis } from "../engine/analysis.js";
 import { evaluationBarFraction, formatEvaluation } from "../engine/normalize.js";
 import { createTimeline, phase } from "../scene/timeline.js";
 import type { SceneDescriptor, SceneSegment, SceneTimeline } from "../scene/types.js";
-import { classifyMoveCategory, headerFor, moveNumberLabel, type MoveCategory } from "./shared.js";
+import {
+  classifyMoveCategory,
+  classifyMoveQuality,
+  formatAccuracySummary,
+  gameAccuracy,
+  headerFor,
+  moveNumberLabel,
+  moveQualityGlyph,
+  type MoveCategory,
+} from "./shared.js";
 
 const INTRO_SECONDS = 1.5;
 const OUTRO_SECONDS = 3.0;
@@ -106,33 +115,38 @@ export function buildReplayStory(
     cues.push({ time: t, type: cueForPly(ply) });
 
     if (pauseSeconds > 0) {
-      const isCritical = category === "critical";
-      const annotation = isCritical ? (swing >= 0 ? "!!" : "??") : "";
+      const quality = classifyMoveQuality(ply, swing);
+      const glyph = quality ? moveQualityGlyph(quality) : "";
       push(pauseSeconds, {
         position: { fen: ply.fenAfter, orientation },
         title: { text: header.title, compact: true },
         subtitle: headerText,
-        moveLabel: { text: `${label}${annotation}`, emphasis: isCritical },
+        moveLabel: { text: `${label}${glyph}`, emphasis: quality !== undefined },
         evaluation,
-        highlights: isCritical
+        highlights: quality
           ? [
-              { square: ply.from, style: "critical" },
-              { square: ply.to, style: "critical" },
+              { square: ply.from, style: quality },
+              { square: ply.to, style: quality },
             ]
           : undefined,
+        moveQualityBadge: quality ? { square: ply.to, tier: quality, glyph } : undefined,
       });
     }
   }
 
   // OUTRO — final position holds; the result only if the PGN actually
-  // recorded a decisive/drawn one (never invent a claim "*" doesn't support).
+  // recorded a decisive/drawn one (never invent a claim "*" doesn't support),
+  // plus each player's own accuracy (always safe to reveal here — the whole
+  // game has already played out by this point).
   const lastPly = game.plies[game.plies.length - 1];
   const finalFen = lastPly?.fenAfter ?? game.initialFen;
   const validResults = new Set(["1-0", "0-1", "1/2-1/2"]);
   const result = game.metadata.result;
+  const accuracySummary = formatAccuracySummary(game.metadata, gameAccuracy(game, analyses));
   push(OUTRO_SECONDS, {
     position: { fen: finalFen, orientation },
     title: result && validResults.has(result) ? { text: result, emphasis: true } : undefined,
+    subtitle: accuracySummary ? { text: accuracySummary } : undefined,
     moveLabel: lastPly ? { text: `${moveNumberLabel(lastPly)} ${lastPly.san}` } : undefined,
   });
 

@@ -51,20 +51,26 @@ describe("buildReplayStory: move classification and timing", () => {
     expect(e4.moveLabel?.text).toBe("1. e4");
     expect(e4.highlights ?? []).toHaveLength(0);
 
-    // e5: swing — a pause follows with no annotation and no highlight.
+    // e5: swing (+200 for black) -> "great" tier — the pause now carries
+    // its own "!" annotation and highlight, same treatment critical gets.
     const e5Pause = stateAtTime(timeline, 3.0);
-    expect(e5Pause.moveLabel?.text).toBe("1... e5");
-    expect(e5Pause.moveLabel?.emphasis).toBeFalsy();
-    expect(e5Pause.highlights ?? []).toHaveLength(0);
+    expect(e5Pause.moveLabel?.text).toBe("1... e5!");
+    expect(e5Pause.moveLabel?.emphasis).toBe(true);
+    expect(e5Pause.highlights).toEqual([
+      { square: "e7", style: "great" },
+      { square: "e5", style: "great" },
+    ]);
+    expect(e5Pause.moveQualityBadge).toEqual({ square: "e5", tier: "great", glyph: "!" });
     expect(e5Pause.moveAnimation).toBeUndefined();
 
-    // Nf3: critical — pause has the "!!" annotation, emphasis, and highlights.
+    // Nf3: critical (+340 for white), not a sacrifice -> "great" tier too,
+    // same "!" annotation and highlight style as e5 above.
     const nf3Pause = stateAtTime(timeline, 5.0);
-    expect(nf3Pause.moveLabel?.text).toBe("2. Nf3!!");
+    expect(nf3Pause.moveLabel?.text).toBe("2. Nf3!");
     expect(nf3Pause.moveLabel?.emphasis).toBe(true);
     expect(nf3Pause.highlights).toEqual([
-      { square: "g1", style: "critical" },
-      { square: "f3", style: "critical" },
+      { square: "g1", style: "great" },
+      { square: "f3", style: "great" },
     ]);
   });
 
@@ -87,16 +93,19 @@ describe("buildReplayStory: move classification and timing", () => {
     expect(move.moveLabel?.text).toBe("1. Re8+");
   });
 
-  it("treats a mate as critical regardless of the computed swing (even a small/negative one)", () => {
+  it("treats a mate as critical regardless of the computed swing (even a small/negative one), and always as the 'brilliant' quality tier", () => {
     const fens = [MATE_GAME.initialFen, MATE_GAME.plies[0]!.fenAfter];
     // Deliberately a tiny negative swing — without the mate override this
-    // would fall through to "check" (Re8# is also a check), not "critical".
+    // would fall through to "check" (Re8# is also a check), not "critical",
+    // and classifyMoveQuality would find no tier at all (|swing| < 150).
     const analyses = [analysis(fens[0]!, 50), analysis(fens[1]!, 40)];
     const timeline = buildReplayStory(MATE_GAME, analyses, { showEval: false });
     // INTRO 1.5 + critical 1.20 + pause 1.0 + OUTRO 3.0
     expect(timeline.duration).toBeCloseTo(6.7, 5);
     const pause = stateAtTime(timeline, 3.0);
-    expect(pause.moveLabel?.text).toBe("1. Re8#??"); // swing (40-50=-10) < 0 -> "??"
+    // Delivering mate can never be a mistake for the mover, regardless of
+    // the (here fabricated) negative cp swing -> always "brilliant"/"!!".
+    expect(pause.moveLabel?.text).toBe("1. Re8#!!");
     expect(pause.moveLabel?.emphasis).toBe(true);
   });
 });
@@ -146,6 +155,17 @@ describe("buildReplayStory: header, event, and result", () => {
     const timeline = buildReplayStory(shortGame, analyses.slice(0, 2), { showEval: false });
     const outro = stateAtTime(timeline, timeline.duration);
     expect(outro.title).toBeUndefined();
+  });
+
+  it("shows each player's own accuracy at the outro", () => {
+    const headeredGame = loadPgn(
+      '[White "Carlsen"]\n[Black "Nepo"]\n[Result "1-0"]\n\n1. e4 e5 1-0',
+    );
+    const fens = [headeredGame.initialFen, ...headeredGame.plies.map((p) => p.fenAfter)];
+    const analyses = fens.map((fen) => analysis(fen, 0)); // flat eval -> ~100% both sides
+    const timeline = buildReplayStory(headeredGame, analyses, { showEval: false });
+    const outro = stateAtTime(timeline, timeline.duration);
+    expect(outro.subtitle?.text).toBe("Carlsen 100.0%   Nepo 100.0%");
   });
 });
 

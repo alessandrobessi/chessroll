@@ -24,9 +24,20 @@ export interface EvaluationElement {
   barFraction: number;
 }
 
+/** Chess.com/lichess-style per-move annotation tiers, worst to best. */
+export type MoveQualityTier = "blunder" | "inaccuracy" | "great" | "brilliant";
+
 export interface HighlightElement {
   square: Square;
-  style: "origin" | "destination" | "critical";
+  style: "origin" | "destination" | MoveQualityTier;
+}
+
+/** A small badge drawn at the destination square, like chess.com/lichess's move-quality icons. */
+export interface MoveQualityBadge {
+  square: Square;
+  tier: MoveQualityTier;
+  /** Pre-formatted annotation glyph: "??" | "?!" | "!" | "!!". */
+  glyph: string;
 }
 
 export interface CountdownElement {
@@ -51,6 +62,7 @@ export interface SceneDescriptor {
   countdown?: CountdownElement;
   moveLabel?: TextElement;
   playerInfo?: PlayerInfoElement;
+  moveQualityBadge?: MoveQualityBadge;
 }
 
 export interface SceneSegment {

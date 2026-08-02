@@ -256,6 +256,40 @@ describe("renderBoardSvg", () => {
     expect(Number(blackTopRect[2])).toBeGreaterThan(800 * 0.9);
   });
 
+  // The cburnett piece set already draws its own <circle> elements (knight
+  // eyes, etc.), so badge presence is checked via its own distinctive
+  // stroke (COLORS.background), not bare "<circle" presence.
+  const BADGE_STROKE_PATTERN = /<circle[^>]*stroke="#F6F3EC"/;
+
+  it("renders no move-quality badge when absent", () => {
+    const svg = renderBoardSvg(baseDescriptor(START_FEN), { geometry, t: 0 });
+    expect(svg).not.toMatch(BADGE_STROKE_PATTERN);
+  });
+
+  it("renders a move-quality badge circle+glyph at the destination square when present", () => {
+    const descriptor: SceneDescriptor = {
+      ...baseDescriptor(START_FEN),
+      moveQualityBadge: { square: "e4", tier: "blunder", glyph: "??" },
+    };
+    const svg = renderBoardSvg(descriptor, { geometry, t: 0 });
+    expect(svg).toMatch(BADGE_STROKE_PATTERN);
+    expect(svg).toContain(">??</text>");
+  });
+
+  it("colors the badge differently per quality tier", () => {
+    const colorFor = (tier: "blunder" | "inaccuracy" | "great" | "brilliant"): string => {
+      const svg = renderBoardSvg(
+        { ...baseDescriptor(START_FEN), moveQualityBadge: { square: "e4", tier, glyph: "x" } },
+        { geometry, t: 0 },
+      );
+      return /<circle[^>]*fill="(#[0-9A-Fa-f]{6})"[^>]*stroke="#F6F3EC"/.exec(svg)![1]!;
+    };
+    const colors = new Set(
+      (["blunder", "inaccuracy", "great", "brilliant"] as const).map((tier) => colorFor(tier)),
+    );
+    expect(colors.size).toBe(4); // all four tiers get a visually distinct color
+  });
+
   it("shifts rank coordinate labels further left to avoid the evaluation bar when both are shown", () => {
     const withoutBar = renderBoardSvg(baseDescriptor(START_FEN), {
       geometry,

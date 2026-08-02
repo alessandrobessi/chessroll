@@ -1,6 +1,8 @@
-import type { GameMetadata, Ply } from "../chess/types.js";
-import type { PositionAnalysis } from "../engine/analysis.js";
-import { moverComparableValue } from "../engine/normalize.js";
+import { Chess, type Color, type PieceSymbol } from "chess.js";
+import type { ChessGame, GameMetadata, Ply, Side } from "../chess/types.js";
+import type { EngineScore, PositionAnalysis } from "../engine/analysis.js";
+import { evaluationBarFraction, moverComparableValue } from "../engine/normalize.js";
+import type { MoveQualityTier } from "../scene/types.js";
 
 /**
  * Shared, template-agnostic pieces used by every full-game template
@@ -80,4 +82,127 @@ export function classifyMoveCategory(
     return { category: "capture", swing };
   }
   return { category: "quiet", swing };
+}
+
+/**
+ * Chessroll's own transparent (not a SEE) sacrifice heuristic, per
+ * BLUEPRINT.md §22's explicit instruction not to copy any proprietary
+ * "brilliant move" classifier: a move counts as a sacrifice if the piece
+ * that just moved is attacked on its new square, and its own value
+ * exceeds whatever it captured in this move (so an opponent recapture
+ * would net the mover a material loss on this exchange alone). Shared by
+ * brilliant.ts's own detector and classifyMoveQuality's "brilliant" tier
+ * below, so a "brilliant" badge and the brilliant template's own "!!"
+ * always mean the same thing.
+ */
+const PIECE_VALUE: Record<PieceSymbol, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+
+export function isSacrifice(ply: Ply): boolean {
+  const chess = new Chess(ply.fenAfter);
+  const opponentColor: Color = ply.side === "white" ? "b" : "w";
+  if (!chess.isAttacked(ply.to, opponentColor)) return false;
+  const movedValue = PIECE_VALUE[ply.promotion ?? ply.piece];
+  const capturedValue = ply.captured ? PIECE_VALUE[ply.captured] : 0;
+  return movedValue > capturedValue;
+}
+
+const QUALITY_GLYPH: Record<MoveQualityTier, string> = {
+  blunder: "??",
+  inaccuracy: "?!",
+  great: "!",
+  brilliant: "!!",
+};
+
+export function moveQualityGlyph(tier: MoveQualityTier): string {
+  return QUALITY_GLYPH[tier];
+}
+
+/**
+ * Chess.com/lichess-style per-move annotation tier, reusing the exact same
+ * SWING_THRESHOLD_CP/CRITICAL_THRESHOLD_CP bands as classifyMoveCategory
+ * (so every "swing"/"critical"-category move gets a tier, and every
+ * quiet/capture/check move never does) and the same isSacrifice heuristic
+ * brilliant.ts already uses to distinguish "!!" from "!". A move that
+ * delivers checkmate is always "brilliant" regardless of its computed
+ * swing — delivering mate can never be a mistake for the mover, the same
+ * reasoning classifyMoveCategory already applies for pacing.
+ */
+export function classifyMoveQuality(ply: Ply, swing: number): MoveQualityTier | undefined {
+  if (ply.flags.mate) return "brilliant";
+  if (swing <= -CRITICAL_THRESHOLD_CP) return "blunder";
+  if (swing <= -SWING_THRESHOLD_CP) return "inaccuracy";
+  if (swing >= SWING_THRESHOLD_CP) return isSacrifice(ply) ? "brilliant" : "great";
+  return undefined;
+}
+
+/**
+ * White's win% (0-100), reusing evaluationBarFraction's own saturating
+ * curve rather than inventing a second one — same shape lichess's own
+ * accuracy formula assumes, just not lichess's exact constant.
+ */
+function winPercentForMover(score: EngineScore, mover: Side): number {
+  const whiteWinPercent = evaluationBarFraction(score) * 100;
+  return mover === "white" ? whiteWinPercent : 100 - whiteWinPercent;
+}
+
+/**
+ * Lichess's own published accuracy-per-move formula: a win% curve fit,
+ * not a linear centipawn-loss average, so accuracy degrades sharply once a
+ * position starts slipping away and only gently in already-decided
+ * positions (BLUEPRINT.md §36-style "don't overreact to depth-variance"
+ * spirit — cp swings deep in a lost/won position shouldn't move the needle
+ * much). A move that improves the mover's win% is never penalized.
+ */
+export function moveAccuracy(before: EngineScore, after: EngineScore, mover: Side): number {
+  const drop = Math.max(0, winPercentForMover(before, mover) - winPercentForMover(after, mover));
+  const accuracy = 103.1668 * Math.exp(-0.04354 * drop) - 3.1669;
+  return Math.min(100, Math.max(0, accuracy));
+}
+
+export interface GameAccuracy {
+  white?: number;
+  black?: number;
+}
+
+/**
+ * Per-player accuracy: the mean of moveAccuracy() over each side's own
+ * moves. `analyses[i]`/`analyses[i+1]` must be the before/after analysis
+ * of `game.plies[i]`, matching analyzeGame()'s plies.length+1 contract
+ * (same as classifyMoveCategory's callers).
+ */
+export function gameAccuracy(game: ChessGame, analyses: PositionAnalysis[]): GameAccuracy {
+  let whiteSum = 0;
+  let whiteCount = 0;
+  let blackSum = 0;
+  let blackCount = 0;
+  for (let i = 0; i < game.plies.length; i++) {
+    const ply = game.plies[i]!;
+    const accuracy = moveAccuracy(analyses[i]!.score, analyses[i + 1]!.score, ply.side);
+    if (ply.side === "white") {
+      whiteSum += accuracy;
+      whiteCount += 1;
+    } else {
+      blackSum += accuracy;
+      blackCount += 1;
+    }
+  }
+  return {
+    white: whiteCount > 0 ? whiteSum / whiteCount : undefined,
+    black: blackCount > 0 ? blackSum / blackCount : undefined,
+  };
+}
+
+/** "A. Rowan 94.2%   B. Voss 88.7%" — omits a side with no moves of its own (e.g. a FEN-started fragment). */
+export function formatAccuracySummary(
+  metadata: GameMetadata,
+  accuracy: GameAccuracy,
+): string | undefined {
+  const parts: string[] = [];
+  if (accuracy.white !== undefined) {
+    parts.push(`${formatPlayer(metadata.white, undefined, "White")} ${accuracy.white.toFixed(1)}%`);
+  }
+  if (accuracy.black !== undefined) {
+    parts.push(`${formatPlayer(metadata.black, undefined, "Black")} ${accuracy.black.toFixed(1)}%`);
+  }
+  return parts.length > 0 ? parts.join("   ") : undefined;
 }

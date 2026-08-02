@@ -13,7 +13,7 @@
   --color-primary: #171717;
   --color-accent: #6b1f2a;
   --color-secondary: #6b6b68;
-  --font-family: system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-family: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
 }
 
 * {

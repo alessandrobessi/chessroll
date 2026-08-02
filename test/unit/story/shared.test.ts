@@ -1,13 +1,21 @@
 import { Chess } from "chess.js";
 import { describe, expect, it } from "vitest";
 import { applyUciMove } from "../../../src/chess/game.js";
+import { loadPgn } from "../../../src/chess/pgn.js";
 import {
   classifyMoveCategory,
+  classifyMoveQuality,
+  formatAccuracySummary,
   formatPlayer,
+  gameAccuracy,
   headerFor,
+  isSacrifice,
+  moveAccuracy,
   moveNumberLabel,
+  moveQualityGlyph,
 } from "../../../src/story/shared.js";
 import type { PositionAnalysis } from "../../../src/engine/analysis.js";
+import type { EngineScore } from "../../../src/engine/analysis.js";
 
 function analysis(fen: string, whitePerspectiveCp: number): PositionAnalysis {
   return {
@@ -124,5 +132,117 @@ describe("classifyMoveCategory", () => {
       analysis(matePly.fenAfter, 40),
     );
     expect(result.category).toBe("critical");
+  });
+});
+
+describe("isSacrifice", () => {
+  // Same fixtures brilliant.ts's own tests already verify against chess.js.
+  const SAC_GAME = loadPgn('[SetUp "1"]\n[FEN "6k1/8/8/2p5/8/8/8/B6K w - - 0 1"]\n\n1. Bd4 *');
+  const NON_SAC_GAME = loadPgn('[SetUp "1"]\n[FEN "6k1/8/8/2p5/8/8/8/B6K w - - 0 1"]\n\n1. Bc3 *');
+
+  it("is true when the moved piece lands on a square attacked by a lesser (or no) capture", () => {
+    expect(isSacrifice(SAC_GAME.plies[0]!)).toBe(true);
+  });
+
+  it("is false when the destination square isn't attacked", () => {
+    expect(isSacrifice(NON_SAC_GAME.plies[0]!)).toBe(false);
+  });
+});
+
+describe("moveQualityGlyph", () => {
+  it("maps each tier to its standard chess annotation glyph", () => {
+    expect(moveQualityGlyph("blunder")).toBe("??");
+    expect(moveQualityGlyph("inaccuracy")).toBe("?!");
+    expect(moveQualityGlyph("great")).toBe("!");
+    expect(moveQualityGlyph("brilliant")).toBe("!!");
+  });
+});
+
+describe("classifyMoveQuality", () => {
+  const chess = new Chess();
+  const quietPly = applyUciMove(chess, "e2e4", 0);
+  const SAC_GAME = loadPgn('[SetUp "1"]\n[FEN "6k1/8/8/2p5/8/8/8/B6K w - - 0 1"]\n\n1. Bd4 *');
+  const NON_SAC_GAME = loadPgn('[SetUp "1"]\n[FEN "6k1/8/8/2p5/8/8/8/B6K w - - 0 1"]\n\n1. Bc3 *');
+
+  it("returns undefined below every threshold (matches classifyMoveCategory's quiet/capture/check bands)", () => {
+    expect(classifyMoveQuality(quietPly, 0)).toBeUndefined();
+    expect(classifyMoveQuality(quietPly, 149)).toBeUndefined();
+    expect(classifyMoveQuality(quietPly, -149)).toBeUndefined();
+  });
+
+  it("classifies -150..-300 as inaccuracy and <=-300 as blunder", () => {
+    expect(classifyMoveQuality(quietPly, -150)).toBe("inaccuracy");
+    expect(classifyMoveQuality(quietPly, -299)).toBe("inaccuracy");
+    expect(classifyMoveQuality(quietPly, -300)).toBe("blunder");
+    expect(classifyMoveQuality(quietPly, -1000)).toBe("blunder");
+  });
+
+  it("classifies a >=150cp positive swing as great, or brilliant when it's also a sacrifice", () => {
+    expect(classifyMoveQuality(NON_SAC_GAME.plies[0]!, 150)).toBe("great");
+    expect(classifyMoveQuality(SAC_GAME.plies[0]!, 150)).toBe("brilliant");
+  });
+
+  it("always classifies a mate-delivering move as brilliant, regardless of swing sign", () => {
+    const mateChess = new Chess("6k1/5ppp/8/8/8/8/8/4R2K w - - 0 1");
+    const matePly = applyUciMove(mateChess, "e1e8", 0);
+    expect(classifyMoveQuality(matePly, -10)).toBe("brilliant");
+  });
+});
+
+function score(whitePerspectiveCp: number): EngineScore {
+  return { type: "cp", value: whitePerspectiveCp, perspective: "white" };
+}
+
+describe("moveAccuracy", () => {
+  it("is ~100 (the formula's own ceiling) when the mover's win% doesn't drop at all", () => {
+    expect(moveAccuracy(score(0), score(50), "white")).toBeCloseTo(100, 1);
+    // Black's win% is 100-white's -- a positive white swing is bad for black,
+    // so this should NOT be near 100.
+    expect(moveAccuracy(score(0), score(200), "black")).toBeLessThan(90);
+  });
+
+  it("drops toward 0 as the mover's win% collapses further", () => {
+    const small = moveAccuracy(score(0), score(-50), "white");
+    const large = moveAccuracy(score(0), score(-800), "white");
+    expect(large).toBeLessThan(small);
+    expect(large).toBeGreaterThanOrEqual(0);
+    expect(small).toBeLessThanOrEqual(100);
+  });
+});
+
+describe("gameAccuracy / formatAccuracySummary", () => {
+  const GAME = loadPgn("1. e4 e5 2. Nf3 Nc6 *");
+  const FENS = [GAME.initialFen, ...GAME.plies.map((p) => p.fenAfter)];
+
+  it("averages each side's own moves independently", () => {
+    // White plays flawlessly (win% never drops for White); Black always
+    // drops win% by handing White a bigger and bigger edge.
+    const analyses: PositionAnalysis[] = [
+      analysis(FENS[0]!, 0),
+      analysis(FENS[1]!, 50), // e4 (white): improves for white
+      analysis(FENS[2]!, 200), // e5 (black): big drop for black
+      analysis(FENS[3]!, 250), // Nf3 (white): improves for white
+      analysis(FENS[4]!, 800), // Nc6 (black): big drop for black
+    ];
+    const result = gameAccuracy(GAME, analyses);
+    expect(result.white).toBeCloseTo(100, 1);
+    expect(result.black).toBeLessThan(90);
+  });
+
+  it("omits a side with no moves of its own", () => {
+    const shortGame = loadPgn("1. e4 *");
+    const analyses = [analysis(GAME.initialFen, 0), analysis(shortGame.plies[0]!.fenAfter, 10)];
+    const result = gameAccuracy(shortGame, analyses);
+    expect(result.white).toBeDefined();
+    expect(result.black).toBeUndefined();
+  });
+
+  it("formats a 'Name X.X%' line per side present, falling back to White/Black", () => {
+    const line = formatAccuracySummary({ white: "Carlsen" }, { white: 94.16, black: 88.7 });
+    expect(line).toBe("Carlsen 94.2%   Black 88.7%");
+  });
+
+  it("returns undefined when neither side has an accuracy value", () => {
+    expect(formatAccuracySummary({}, {})).toBeUndefined();
   });
 });
