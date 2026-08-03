@@ -129,6 +129,16 @@ export function buildGame60Story(
   const headerText: SceneDescriptor["subtitle"] = header.subtitle
     ? { text: header.subtitle }
     : undefined;
+  // Flush to the board's own edges, not a centered page title: whoever
+  // sits at the top of the CURRENT orientation gets the top label, the
+  // bottom side gets the bottom one — fixed for the whole video, since
+  // orientation itself never changes mid-game.
+  const topPlayer: SceneDescriptor["topPlayer"] = {
+    text: orientation === "white" ? header.black : header.white,
+  };
+  const bottomPlayer: SceneDescriptor["bottomPlayer"] = {
+    text: orientation === "white" ? header.white : header.black,
+  };
   const plan = planMoves(game, analyses, options.targetSeconds);
 
   const segments: SceneSegment[] = [];
@@ -139,11 +149,12 @@ export function buildGame60Story(
     t += length;
   };
 
-  // INTRO — player header, starting position.
+  // INTRO — player labels, starting position.
   push(INTRO_SECONDS, {
     position: { fen: game.initialFen, orientation },
-    title: { text: header.title, compact: true },
     subtitle: headerText,
+    topPlayer,
+    bottomPlayer,
   });
 
   for (let i = 0; i < game.plies.length; i++) {
@@ -172,8 +183,9 @@ export function buildGame60Story(
     push(moveSeconds, {
       position: { fen: ply.fenBefore, orientation },
       moveAnimation: toMoveAnimation(ply, { start: t, end: t + moveSeconds }),
-      title: { text: header.title, compact: true },
       subtitle: headerText,
+      topPlayer,
+      bottomPlayer,
       moveLabel: { text: `${label}${inlineGlyph}`, emphasis: inlineQuality !== undefined },
       evaluation,
       highlights: inlineQuality ? [{ square: ply.to, style: inlineQuality }] : undefined,
@@ -187,8 +199,9 @@ export function buildGame60Story(
       const glyph = quality ? moveQualityGlyph(quality) : "";
       push(CRITICAL_PAUSE_SECONDS, {
         position: { fen: ply.fenAfter, orientation },
-        title: { text: header.title, compact: true },
         subtitle: headerText,
+        topPlayer,
+        bottomPlayer,
         moveLabel: { text: `${label}${glyph}`, emphasis: true },
         evaluation,
         highlights: quality
@@ -215,6 +228,8 @@ export function buildGame60Story(
     position: { fen: finalFen, orientation },
     title: result && validResults.has(result) ? { text: result, emphasis: true } : undefined,
     subtitle: accuracySummary ? { text: accuracySummary } : undefined,
+    topPlayer,
+    bottomPlayer,
     moveLabel: lastPly ? { text: `${moveNumberLabel(lastPly)} ${lastPly.san}` } : undefined,
   });
 

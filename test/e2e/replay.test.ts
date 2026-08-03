@@ -110,25 +110,37 @@ describe("Gate: chessroll test/fixtures/replay-game.pgn --template replay", () =
     };
 
     try {
-      // Header + event visible from the very first frame.
+      // Player labels (flush to the board's edges) + event visible from the
+      // very first frame.
       await renderAtTime(0);
-      const title0 = await session.page.locator("#overlay-root .title").textContent();
-      expect(title0).toBe("A. Rowan (2100) vs B. Voss (2050)");
+      const bottomPlayer0 = await session.page
+        .locator("#overlay-root .player-label--bottom")
+        .textContent();
+      expect(bottomPlayer0).toBe("A. Rowan (2100)");
+      const topPlayer0 = await session.page
+        .locator("#overlay-root .player-label--top")
+        .textContent();
+      expect(topPlayer0).toBe("B. Voss (2050)");
       const subtitle0 = await session.page.locator("#overlay-root .subtitle").textContent();
       expect(subtitle0).toBe("Chessroll Fixture Open, 2024");
 
       // Result never appears before the final (outro) segment.
       await renderAtTime(timeline.duration - 3.5);
-      const midTitle = await session.page.locator("#overlay-root .title").textContent();
-      expect(midTitle).not.toBe("0-1");
+      const midTitleCount = await session.page.locator("#overlay-root .title").count();
+      expect(midTitleCount).toBe(0);
 
       // The outro shows the real recorded result, emphasized, plus each
-      // player's own accuracy in place of the event/year subtitle.
+      // player's own accuracy in place of the event/year subtitle — and
+      // the player labels themselves are still there too.
       await renderAtTime(timeline.duration);
       const finalTitle = await session.page.locator(".title--emphasis").textContent();
       expect(finalTitle).toBe("0-1");
       const finalSubtitle = await session.page.locator("#overlay-root .subtitle").textContent();
       expect(finalSubtitle).toMatch(/^A\. Rowan \d+\.\d% {3}B\. Voss \d+\.\d%$/);
+      const finalBottomPlayer = await session.page
+        .locator("#overlay-root .player-label--bottom")
+        .textContent();
+      expect(finalBottomPlayer).toBe("A. Rowan (2100)");
     } finally {
       await session.close();
       await rm(rendererDir, { recursive: true, force: true });

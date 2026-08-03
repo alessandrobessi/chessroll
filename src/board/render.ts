@@ -310,11 +310,21 @@ function escapeHtml(text: string): string {
 function textBlock(className: string, element: TextElement | undefined): string {
   if (!element) return "";
   const emphasisClass = element.emphasis ? ` ${className}--emphasis` : "";
-  const compactClass = element.compact ? ` ${className}--compact` : "";
-  return `<div class="${className}${emphasisClass}${compactClass}">${escapeHtml(element.text)}</div>`;
+  return `<div class="${className}${emphasisClass}">${escapeHtml(element.text)}</div>`;
 }
 
-/** Assembles the non-board overlay (title/prompt/countdown/evaluation/move label). */
+/**
+ * Player labels only ever need plain text, never emphasis — kept separate
+ * from textBlock() above because its `${className}--emphasis` suffix
+ * logic doesn't compose with a multi-word className like "player-label
+ * player-label--top".
+ */
+function playerLabelBlock(className: string, element: TextElement | undefined): string {
+  if (!element) return "";
+  return `<div class="${className}">${escapeHtml(element.text)}</div>`;
+}
+
+/** Assembles the non-board overlay (title/prompt/countdown/evaluation/move label/player labels). */
 export function renderOverlayHtml(descriptor: SceneDescriptor): string {
   const parts: string[] = [
     textBlock("title", descriptor.title),
@@ -328,5 +338,7 @@ export function renderOverlayHtml(descriptor: SceneDescriptor): string {
     parts.push(`<div class="evaluation">${escapeHtml(descriptor.evaluation.display)}</div>`);
   }
   parts.push(textBlock("move-label", descriptor.moveLabel));
+  parts.push(playerLabelBlock("player-label player-label--top", descriptor.topPlayer));
+  parts.push(playerLabelBlock("player-label player-label--bottom", descriptor.bottomPlayer));
   return parts.join("");
 }

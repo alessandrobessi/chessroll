@@ -76,7 +76,7 @@ describe("Gate: chessroll test/fixtures/game60-game.pgn --template game60", () =
     expect(probe.audioCodec).toBe("aac");
   }, 30_000);
 
-  it("shows the compact player header from t=0 and highlights the critical blunder", async () => {
+  it("shows the board-edge player labels from t=0 and highlights the critical blunder", async () => {
     const game = loadPgn(await readFile(resolve("test/fixtures/game60-game.pgn"), "utf8"));
     const analyses = await analyzeGame(engine, game, { depth: 10 });
     const timeline = buildGame60Story(game, analyses, { targetSeconds: 20, showEval: true });
@@ -108,8 +108,14 @@ describe("Gate: chessroll test/fixtures/game60-game.pgn --template game60", () =
 
     try {
       await renderAtTime(0);
-      const title0 = await session.page.locator("#overlay-root .title--compact").textContent();
-      expect(title0).toBe("C. Ibarra (2210) vs D. Solheim (2190)");
+      const bottomPlayer0 = await session.page
+        .locator("#overlay-root .player-label--bottom")
+        .textContent();
+      expect(bottomPlayer0).toBe("C. Ibarra (2210)");
+      const topPlayer0 = await session.page
+        .locator("#overlay-root .player-label--top")
+        .textContent();
+      expect(topPlayer0).toBe("D. Solheim (2190)");
 
       const critical = timeline.segments.find((s) => s.state.moveLabel?.text === "18. Bg6??");
       expect(critical).toBeDefined();

@@ -105,7 +105,7 @@ describe("buildGame60Story: only critical moments pause", () => {
 });
 
 describe("buildGame60Story: header and result", () => {
-  it("shows a compact 'White vs Black' header (with Elo when present), persistently", () => {
+  it("shows each player's name/rating flush to the board's own edges, persistently", () => {
     const headeredGame = loadPgn(
       '[White "Carlsen"]\n[Black "Nepo"]\n[WhiteElo "2850"]\n[Event "World Championship"]\n[Result "1-0"]\n\n1. e4 e5 1-0',
     );
@@ -116,15 +116,16 @@ describe("buildGame60Story: header and result", () => {
       showEval: false,
     });
 
+    // Default orientation puts White (Carlsen) at the bottom, Black (Nepo) at the top.
     for (const t of [0, 2.0]) {
       const state = stateAtTime(timeline, t);
-      expect(state.title?.text).toBe("Carlsen (2850) vs Nepo");
-      expect(state.title?.compact).toBe(true); // the layout fix: never full-size for the persistent header
+      expect(state.bottomPlayer?.text).toBe("Carlsen (2850)");
+      expect(state.topPlayer?.text).toBe("Nepo");
       expect(state.subtitle?.text).toBe("World Championship");
     }
   });
 
-  it("shows the recorded result at the outro, full-size (not compact)", () => {
+  it("shows the recorded result at the outro, alongside the still-persistent player labels", () => {
     const headeredGame = loadPgn(
       '[White "Carlsen"]\n[Black "Nepo"]\n[Result "1-0"]\n\n1. e4 e5 1-0',
     );
@@ -136,6 +137,8 @@ describe("buildGame60Story: header and result", () => {
     });
     const outro = stateAtTime(timeline, timeline.duration);
     expect(outro.title).toEqual({ text: "1-0", emphasis: true });
+    expect(outro.bottomPlayer?.text).toBe("Carlsen");
+    expect(outro.topPlayer?.text).toBe("Nepo");
   });
 
   it("never invents a result when the PGN result is the unresolved '*' token", () => {

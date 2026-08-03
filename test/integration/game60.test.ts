@@ -69,8 +69,8 @@ describe("game60 pacing against the real engine and the verified fixture", () =>
   it("shows the header throughout, with no invented result (the fixture's game is unfinished), plus a real accuracy summary", async () => {
     const analyses = await analyzeGame(engine, game, { depth: 10 });
     const timeline = buildGame60Story(game, analyses, { targetSeconds: 30, showEval: false });
-    expect(timeline.segments[0]!.state.title?.text).toBe("C. Ibarra (2210) vs D. Solheim (2190)");
-    expect(timeline.segments[0]!.state.title?.compact).toBe(true);
+    expect(timeline.segments[0]!.state.bottomPlayer?.text).toBe("C. Ibarra (2210)");
+    expect(timeline.segments[0]!.state.topPlayer?.text).toBe("D. Solheim (2190)");
     const outro = timeline.segments[timeline.segments.length - 1]!;
     expect(outro.state.title).toBeUndefined();
     expect(outro.state.subtitle?.text).toMatch(/^C\. Ibarra \d+\.\d% {3}D\. Solheim \d+\.\d%$/);

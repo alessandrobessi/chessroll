@@ -12,8 +12,6 @@ export interface BoardPosition {
 export interface TextElement {
   text: string;
   emphasis?: boolean;
-  /** Smaller variant for persistent, potentially-long text (e.g. a "Name (Rating) vs Name (Rating)" header). */
-  compact?: boolean;
 }
 
 export interface EvaluationElement {
@@ -51,11 +49,6 @@ export interface CountdownElement {
   value: number;
 }
 
-export interface PlayerInfoElement {
-  name?: string;
-  rating?: number;
-}
-
 export interface SceneDescriptor {
   position: BoardPosition;
   moveAnimation?: MoveAnimation;
@@ -67,7 +60,10 @@ export interface SceneDescriptor {
   highlights?: HighlightElement[];
   countdown?: CountdownElement;
   moveLabel?: TextElement;
-  playerInfo?: PlayerInfoElement;
+  /** Name (+ rating) of whoever sits at the TOP of the board given the current orientation, shown flush left just above it. */
+  topPlayer?: TextElement;
+  /** Name (+ rating) of whoever sits at the BOTTOM of the board given the current orientation, shown flush left below everything else under the board. */
+  bottomPlayer?: TextElement;
   moveQualityBadge?: MoveQualityBadge;
 }
 

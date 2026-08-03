@@ -117,7 +117,8 @@ describe("buildReplayStory: header, event, and result", () => {
     const shortGame = loadPgn("1. e4 *");
     const timeline = buildReplayStory(shortGame, analyses.slice(0, 2), { showEval: false });
     const intro = stateAtTime(timeline, 0);
-    expect(intro.title?.text).toBe("White vs Black");
+    expect(intro.bottomPlayer?.text).toBe("White"); // default orientation: White at the bottom
+    expect(intro.topPlayer?.text).toBe("Black");
     expect(intro.subtitle).toBeUndefined();
   });
 
@@ -130,14 +131,29 @@ describe("buildReplayStory: header, event, and result", () => {
     const timeline = buildReplayStory(headeredGame, analyses, { showEval: false });
 
     // Carlsen has an Elo, Nepo doesn't — each formatted independently.
+    // Default orientation puts White (Carlsen) at the bottom, Black (Nepo) at the top.
     for (const t of [0, 2.0]) {
       const state = stateAtTime(timeline, t);
-      expect(state.title?.text).toBe("Carlsen (2850) vs Nepo");
+      expect(state.bottomPlayer?.text).toBe("Carlsen (2850)");
+      expect(state.topPlayer?.text).toBe("Nepo");
       expect(state.subtitle?.text).toBe("World Championship");
     }
   });
 
-  it("shows the recorded result at the outro, and switches away from the player header", () => {
+  it("flips which player's label is on top/bottom when orientation is black", () => {
+    const headeredGame = loadPgn('[White "Carlsen"]\n[Black "Nepo"]\n\n1. e4 e5 *');
+    const fens = [headeredGame.initialFen, ...headeredGame.plies.map((p) => p.fenAfter)];
+    const analyses = fens.map((fen) => analysis(fen, 0));
+    const timeline = buildReplayStory(headeredGame, analyses, {
+      showEval: false,
+      orientation: "black",
+    });
+    const intro = stateAtTime(timeline, 0);
+    expect(intro.bottomPlayer?.text).toBe("Nepo");
+    expect(intro.topPlayer?.text).toBe("Carlsen");
+  });
+
+  it("shows the recorded result at the outro, alongside the still-persistent player labels", () => {
     const headeredGame = loadPgn(
       '[White "Carlsen"]\n[Black "Nepo"]\n[Result "1-0"]\n\n1. e4 e5 1-0',
     );
@@ -147,6 +163,8 @@ describe("buildReplayStory: header, event, and result", () => {
     const outro = stateAtTime(timeline, timeline.duration);
     expect(outro.title).toEqual({ text: "1-0", emphasis: true });
     expect(outro.moveLabel?.text).toBe("1... e5");
+    expect(outro.bottomPlayer?.text).toBe("Carlsen");
+    expect(outro.topPlayer?.text).toBe("Nepo");
   });
 
   it("never invents a result when the PGN result is the unresolved '*' token", () => {

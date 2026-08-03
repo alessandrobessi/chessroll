@@ -65,7 +65,8 @@ describe("replay classification against the real engine and the verified fixture
   it("shows the header throughout, the recorded result (0-1), and both players' accuracy at the outro", async () => {
     const analyses = await analyzeGame(engine, game, { depth: 12 });
     const timeline = buildReplayStory(game, analyses, { showEval: false });
-    expect(stateAtTime(timeline, 0).title?.text).toBe("A. Rowan (2100) vs B. Voss (2050)");
+    expect(stateAtTime(timeline, 0).bottomPlayer?.text).toBe("A. Rowan (2100)");
+    expect(stateAtTime(timeline, 0).topPlayer?.text).toBe("B. Voss (2050)");
     expect(stateAtTime(timeline, 0).subtitle?.text).toBe("Chessroll Fixture Open, 2024");
     const outro = stateAtTime(timeline, timeline.duration);
     expect(outro.title).toEqual({ text: "0-1", emphasis: true });

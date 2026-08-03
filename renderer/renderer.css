@@ -76,19 +76,6 @@ body {
   line-height: 1.15;
 }
 
-/*
- * Used for persistent, potentially-long headers (replay/game60's
- * "Name (Rating) vs Name (Rating)") — full-size .title is tuned for a
- * short one-off hook phrase (e.g. "FIND THE BEST MOVE") and reliably
- * wraps to two lines for a name+rating matchup at 1080px width, which
- * collided with .subtitle below it. Compact keeps most long matchups on
- * one line, and .subtitle's own top already has enough clearance even if
- * it does wrap.
- */
-.title--compact {
-  font-size: 40px;
-}
-
 .subtitle,
 .prompt {
   top: 240px;
@@ -122,4 +109,36 @@ body {
 .title--emphasis,
 .move-label--emphasis {
   color: var(--color-accent);
+}
+
+/*
+ * Flush to the board's own left edge (defaultBoardGeometry's x=70) —
+ * chess.com/lichess-style player bars right against the board, rather
+ * than a centered page title. Which name lands in which slot is decided
+ * by the story builder (whoever sits at the top/bottom of the CURRENT
+ * orientation), not by this stylesheet.
+ */
+.player-label {
+  position: absolute;
+  left: 70px;
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+/* Just above the board's top (y=560) — nothing else ever occupies this stretch of the page. */
+.player-label--top {
+  top: 500px;
+}
+
+/*
+ * Below everything else that can appear under the board (coordinates,
+ * evaluation/countdown, move-label all fit in y=1500-1780) rather than
+ * flush against the board's own bottom edge — that edge is already
+ * crowded (file coordinates land right there when --coordinates is on),
+ * so this stays collision-free regardless of which optional overlays
+ * are active.
+ */
+.player-label--bottom {
+  top: 1800px;
 }

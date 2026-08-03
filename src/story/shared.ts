@@ -28,13 +28,18 @@ function extractYear(date: string | undefined): string | undefined {
   return year && /^\d{4}$/.test(year) ? year : undefined;
 }
 
-export function headerFor(metadata: GameMetadata): { title: string; subtitle?: string } {
+export function headerFor(metadata: GameMetadata): {
+  title: string;
+  subtitle?: string;
+  white: string;
+  black: string;
+} {
   const white = formatPlayer(metadata.white, metadata.whiteElo, "White");
   const black = formatPlayer(metadata.black, metadata.blackElo, "Black");
   const event = metadata.event && metadata.event !== "?" ? metadata.event : undefined;
   const year = extractYear(metadata.date);
   const subtitle = [event, year].filter((part) => part !== undefined).join(", ") || undefined;
-  return { title: `${white} vs ${black}`, subtitle };
+  return { title: `${white} vs ${black}`, subtitle, white, black };
 }
 
 export function moveNumberLabel(ply: Ply): string {

@@ -71,6 +71,16 @@ export function buildReplayStory(
   const headerText: SceneDescriptor["subtitle"] = header.subtitle
     ? { text: header.subtitle }
     : undefined;
+  // Flush to the board's own edges, not a centered page title: whoever
+  // sits at the top of the CURRENT orientation gets the top label, the
+  // bottom side gets the bottom one — fixed for the whole video, since
+  // orientation itself never changes mid-replay.
+  const topPlayer: SceneDescriptor["topPlayer"] = {
+    text: orientation === "white" ? header.black : header.white,
+  };
+  const bottomPlayer: SceneDescriptor["bottomPlayer"] = {
+    text: orientation === "white" ? header.white : header.black,
+  };
 
   const segments: SceneSegment[] = [];
   const cues: AudioCue[] = [];
@@ -80,11 +90,12 @@ export function buildReplayStory(
     t += length;
   };
 
-  // INTRO — player header, starting position.
+  // INTRO — player labels, starting position.
   push(INTRO_SECONDS, {
     position: { fen: game.initialFen, orientation },
-    title: { text: header.title, compact: true },
     subtitle: headerText,
+    topPlayer,
+    bottomPlayer,
   });
 
   let previousPly: Ply | undefined;
@@ -116,8 +127,9 @@ export function buildReplayStory(
     push(moveSeconds, {
       position: { fen: ply.fenBefore, orientation },
       moveAnimation: toMoveAnimation(ply, { start: t, end: t + moveSeconds }),
-      title: { text: header.title, compact: true },
       subtitle: headerText,
+      topPlayer,
+      bottomPlayer,
       moveLabel: { text: label },
       evaluation,
     });
@@ -128,8 +140,9 @@ export function buildReplayStory(
       const glyph = quality ? moveQualityGlyph(quality) : "";
       push(pauseSeconds, {
         position: { fen: ply.fenAfter, orientation },
-        title: { text: header.title, compact: true },
         subtitle: headerText,
+        topPlayer,
+        bottomPlayer,
         moveLabel: { text: `${label}${glyph}`, emphasis: quality !== undefined },
         evaluation,
         highlights: quality
@@ -159,6 +172,8 @@ export function buildReplayStory(
     position: { fen: finalFen, orientation },
     title: result && validResults.has(result) ? { text: result, emphasis: true } : undefined,
     subtitle: accuracySummary ? { text: accuracySummary } : undefined,
+    topPlayer,
+    bottomPlayer,
     moveLabel: lastPly ? { text: `${moveNumberLabel(lastPly)} ${lastPly.san}` } : undefined,
   });
 
