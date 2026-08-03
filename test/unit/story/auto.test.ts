@@ -82,6 +82,33 @@ describe("planAutoStories", () => {
     expect(plan.puzzles[0]!.ply.san).toBe("Nf3"); // the larger-magnitude one wins the single slot
   });
 
+  it("excludes a blunder candidate from the blunder list when it's actually a miss, but still surfaces it as a puzzle", () => {
+    const analyses = [
+      analysis(FENS[0]!, 0),
+      analysis(FENS[1]!, 10), // e4 (white): quiet
+      analysis(FENS[2]!, 0), // e5 (black): quiet, so Nf3 below is a genuine blunder, not a miss
+      // Nf3 (white): swing -350 -> a real blunder, gifting Black a big
+      // opportunity (rank1 promises +900 for Black from here).
+      analysis(FENS[3]!, -350, "", [
+        { rank: 1, score: { type: "cp", value: -900, perspective: "white" }, moves: [] },
+      ]),
+      // Nc6 (black): only achieves 0 (swing -350, a "blunder" by its own
+      // severity too) — but 900cp short of the +900 rank1 promised right
+      // after White's own blunder, so it's really a miss, not a fresh one.
+      analysis(FENS[4]!, 0),
+      analysis(FENS[5]!, 10), // Bc4 (white): quiet
+      analysis(FENS[6]!, 5), // Bc5 (black): quiet
+    ];
+
+    const plan = planAutoStories(GAME, analyses);
+
+    expect(plan.blunders).toHaveLength(1);
+    expect(plan.blunders[0]!.ply.san).toBe("Nf3"); // White's real blunder, kept
+    expect(plan.blunders.some((c) => c.ply.san === "Nc6")).toBe(false); // excluded: it's a miss, not a blunder
+
+    expect(plan.puzzles.map((p) => p.ply.san)).toContain("Nc6"); // still surfaced, just as a puzzle
+  });
+
   it("detects a brilliant candidate and excludes it from the puzzle pool", () => {
     const sacGame = loadPgn(pgnFromFen("6k1/8/8/2p5/8/8/8/B6K w - - 0 1", "Bd4"));
     const fens = [sacGame.initialFen, sacGame.plies[0]!.fenAfter];

@@ -129,7 +129,7 @@ node dist/cli.js test/fixtures/replay-game.pgn --template auto -o replay-game-au
 node dist/cli.js test/fixtures/replay-game.pgn --template auto --max-per-category 5 -o replay-game-auto/
 ```
 
-`auto` is the only template where `-o`/`--output` names a directory rather than a single MP4 — it produces `replay.mp4` plus a `blunder-<ply>-<san>.mp4`/`brilliant-<ply>-<san>.mp4`/`puzzle-<ply>-<san>.mp4` per significant moment (default output directory: `<input-basename>-auto/`). A move already turned into its own blunder/brilliant video never also becomes a near-duplicate puzzle video — puzzles only cover significant moments no other video already features.
+`auto` is the only template where `-o`/`--output` names a directory rather than a single MP4 — it produces `replay.mp4` plus a `blunder-<ply>-<san>.mp4`/`brilliant-<ply>-<san>.mp4`/`puzzle-<ply>-<san>.mp4` per significant moment (default output directory: `<input-basename>-auto/`). A move already turned into its own blunder/brilliant video never also becomes a near-duplicate puzzle video — puzzles only cover significant moments no other video already features. A detected blunder candidate that's actually a miss (the mover failed to punish the _opponent's_ own immediately preceding blunder/mistake) never becomes its own `blunder-*.mp4` either; it falls through to the puzzle pool instead, so a video's own name never disagrees with what `replay`/`game60`'s per-move badge would show for that same ply.
 
 ## Installation
 
