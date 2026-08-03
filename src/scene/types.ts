@@ -76,7 +76,7 @@ export interface SceneSegment {
 export interface SceneTimeline {
   duration: number;
   segments: SceneSegment[];
-  /** Draw file/rank labels in the board's outer margin. Default false. */
+  /** Draw file/rank labels inside the board's own edge squares (lichess/chess.com convention). Default false. */
   showCoordinates?: boolean;
   /** Sound cues to mix into the encoded video. Always computed; muting happens at encode time. */
   audioCues?: AudioCue[];

@@ -16,40 +16,40 @@ import { BADGE_FONT_FAMILY, COLORS, FONT_FAMILY } from "./theme.js";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
 
-/** Width the evaluation bar (+ its gap to the board) reserves in the left margin, when shown. */
-const EVAL_BAR_RESERVED_WIDTH = 29;
-
 /**
- * Rank/file labels drawn outside the 8x8 grid (in the board's own margin,
- * never overlapping a square) — "external" coordinates, as opposed to the
- * small in-corner style some sites draw on the edge squares themselves.
- * Positions are derived from squareToRect/squareToPoint rather than
- * re-deriving orientation logic here, so flipping the board (black
- * orientation) automatically flips the labels too.
- *
- * `leftReserve` shifts the rank labels further left, out of the way of the
- * evaluation bar (also left-of-board) when one is present — both features
- * fit in the board's existing left margin without moving the board itself.
+ * Rank/file labels drawn INSIDE the board, in the corner of the edge
+ * squares — the lichess/chess.com convention (rank number in the
+ * top-left corner of the leftmost visible file, file letter in the
+ * bottom-right corner of the bottommost visible rank) — rather than
+ * external labels in the board's own margin. Each label is colored the
+ * OPPOSITE of its own square (a dark label on a light square, a light
+ * label on a dark square) for automatic contrast, same as those sites.
+ * `squareToRect` already accounts for orientation, so which file ends up
+ * on the left / which rank ends up on the bottom both flip automatically
+ * with the board — nothing re-derived here.
  */
-function renderCoordinates(geometry: BoardGeometry, leftReserve: number): string {
-  const fontSize = Math.round(geometry.squareSize * 0.22);
-  const rankLabelX = geometry.x - leftReserve - fontSize * 0.9;
-  const fileLabelY = geometry.y + geometry.size + fontSize * 1.1;
+function renderCoordinates(geometry: BoardGeometry): string {
+  const fontSize = Math.round(geometry.squareSize * 0.18);
+  const padding = geometry.squareSize * 0.08;
+  const leftFile = geometry.orientation === "white" ? "a" : "h";
+  const bottomRank = geometry.orientation === "white" ? 1 : 8;
+  const labelColor = (square: Square): string =>
+    squareColor(square) === "light" ? COLORS.boardDark : COLORS.boardLight;
 
   let out = "";
   for (let rank = 1; rank <= 8; rank++) {
-    const square = `a${rank}` as Square;
-    const y = squareToPoint(square, geometry).y;
+    const square = `${leftFile}${rank}` as Square;
+    const rect = squareToRect(square, geometry);
     out +=
-      `<text x="${rankLabelX}" y="${y}" font-family="${FONT_FAMILY}" font-size="${fontSize}" ` +
-      `font-weight="600" fill="${COLORS.secondary}" text-anchor="middle" dominant-baseline="central">${rank}</text>`;
+      `<text x="${rect.x + padding}" y="${rect.y + padding}" font-family="${FONT_FAMILY}" font-size="${fontSize}" ` +
+      `font-weight="700" fill="${labelColor(square)}" text-anchor="start" dominant-baseline="hanging">${rank}</text>`;
   }
   for (const file of FILES) {
-    const square = `${file}1` as Square;
-    const x = squareToPoint(square, geometry).x;
+    const square = `${file}${bottomRank}` as Square;
+    const rect = squareToRect(square, geometry);
     out +=
-      `<text x="${x}" y="${fileLabelY}" font-family="${FONT_FAMILY}" font-size="${fontSize}" ` +
-      `font-weight="600" fill="${COLORS.secondary}" text-anchor="middle" dominant-baseline="hanging">${file}</text>`;
+      `<text x="${rect.x + rect.width - padding}" y="${rect.y + rect.height - padding}" font-family="${FONT_FAMILY}" font-size="${fontSize}" ` +
+      `font-weight="700" fill="${labelColor(square)}" text-anchor="end" dominant-baseline="ideographic">${file}</text>`;
   }
   return out;
 }
@@ -282,7 +282,7 @@ export interface RenderOptions {
   geometry: BoardGeometry;
   /** Current timeline timestamp, used only to interpolate moveAnimation progress. */
   t: number;
-  /** Draw file/rank labels in the board's outer margin. Default false. */
+  /** Draw file/rank labels inside the board's own edge squares (lichess/chess.com convention). Default false. */
   coordinates?: boolean;
 }
 
@@ -290,14 +290,13 @@ export interface RenderOptions {
 export function renderBoardSvg(descriptor: SceneDescriptor, options: RenderOptions): string {
   const { geometry, t, coordinates } = options;
   const skip = squaresToSkip(descriptor.moveAnimation);
-  const coordinatesReserve = descriptor.evaluation ? EVAL_BAR_RESERVED_WIDTH : 0;
   return (
     renderSquares(geometry) +
+    (coordinates ? renderCoordinates(geometry) : "") +
     renderHighlights(descriptor.highlights, geometry) +
     renderStaticPieces(descriptor.position.fen, geometry, skip) +
     renderMovingPieces(descriptor.moveAnimation, t, geometry) +
     renderArrows(descriptor.arrows, geometry) +
-    (coordinates ? renderCoordinates(geometry, coordinatesReserve) : "") +
     renderEvaluationBar(descriptor.evaluation, geometry) +
     renderMoveQualityBadge(descriptor.moveQualityBadge, geometry)
   );

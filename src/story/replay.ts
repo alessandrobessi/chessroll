@@ -48,7 +48,7 @@ export interface ReplayOptions {
   showEval: boolean;
   /** No single mover to default from (unlike puzzle/blunder/brilliant) — defaults to "white". */
   orientation?: Side;
-  /** Draw file/rank labels in the board's outer margin. Default false. */
+  /** Draw file/rank labels inside the board's own edge squares (lichess/chess.com convention). Default false. */
   coordinates?: boolean;
 }
 

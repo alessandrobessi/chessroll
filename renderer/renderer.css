@@ -132,13 +132,11 @@ body {
 }
 
 /*
- * Below everything else that can appear under the board (coordinates,
- * evaluation/countdown, move-label all fit in y=1500-1780) rather than
- * flush against the board's own bottom edge — that edge is already
- * crowded (file coordinates land right there when --coordinates is on),
- * so this stays collision-free regardless of which optional overlays
- * are active.
+ * Just below the board's bottom (y=1500), mirroring .player-label--top
+ * above — safe now that --coordinates draws file/rank labels INSIDE the
+ * board's own edge squares rather than in this margin, so there's no
+ * collision to route around here anymore.
  */
 .player-label--bottom {
-  top: 1800px;
+  top: 1505px;
 }

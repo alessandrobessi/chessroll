@@ -105,7 +105,7 @@ describe("renderBoardSvg", () => {
     ).not.toContain("<text");
   });
 
-  it("draws 8 rank labels and 8 file labels outside the board when coordinates: true", () => {
+  it("draws 8 rank labels and 8 file labels when coordinates: true", () => {
     const svg = renderBoardSvg(baseDescriptor(START_FEN), { geometry, t: 0, coordinates: true });
     const labels = [...svg.matchAll(/<text[^>]*>([^<]+)<\/text>/g)].map((m) => m[1]);
     expect(labels).toHaveLength(16);
@@ -186,10 +186,10 @@ describe("renderBoardSvg", () => {
     ]);
   });
 
-  it("keeps coordinate labels outside the board's own bounding box", () => {
+  it("keeps coordinate labels inside the board's own bounding box, in the corner of edge squares", () => {
     const svg = renderBoardSvg(baseDescriptor(START_FEN), { geometry, t: 0, coordinates: true });
-    // geometry here is { x: 0, y: 0, size: 800 } — rank labels (digits) sit
-    // left of x=0, file labels (letters) sit below y=800.
+    // geometry here is { x: 0, y: 0, size: 800 } — every label must fall
+    // within that same 800x800 box now, unlike the old external margin style.
     const rankLabelXs = [
       ...svg.matchAll(/<text x="([-\d.]+)" y="[-\d.]+"[^>]*>[1-8]<\/text>/g),
     ].map((m) => Number(m[1]));
@@ -198,8 +198,16 @@ describe("renderBoardSvg", () => {
     ].map((m) => Number(m[1]));
     expect(rankLabelXs).toHaveLength(8);
     expect(fileLabelYs).toHaveLength(8);
-    expect(rankLabelXs.every((x) => x < 0)).toBe(true);
-    expect(fileLabelYs.every((y) => y > 800)).toBe(true);
+    expect(rankLabelXs.every((x) => x >= 0 && x <= 800)).toBe(true);
+    expect(fileLabelYs.every((y) => y >= 0 && y <= 800)).toBe(true);
+  });
+
+  it("colors each coordinate label the opposite of its own square, for contrast", () => {
+    const svg = renderBoardSvg(baseDescriptor(START_FEN), { geometry, t: 0, coordinates: true });
+    // a8 (rank label "8") is a light square -> label should use the dark
+    // board color; a1 (rank label "1") is a dark square -> light label.
+    expect(svg).toMatch(new RegExp(`fill="#8B8372"[^>]*>8</text>`));
+    expect(svg).toMatch(new RegExp(`fill="#EDEAE1"[^>]*>1</text>`));
   });
 
   it("renders no evaluation bar when evaluation is absent", () => {
@@ -294,7 +302,7 @@ describe("renderBoardSvg", () => {
     expect(colors.size).toBe(6); // all six tiers get a visually distinct color
   });
 
-  it("shifts rank coordinate labels further left to avoid the evaluation bar when both are shown", () => {
+  it("keeps coordinate label positions unaffected by the evaluation bar (internal labels never shared the eval bar's margin)", () => {
     const withoutBar = renderBoardSvg(baseDescriptor(START_FEN), {
       geometry,
       t: 0,
@@ -309,8 +317,7 @@ describe("renderBoardSvg", () => {
     );
     const rankLabelX = (svg: string): number =>
       Number(/<text x="(-?[\d.]+)" y="[-\d.]+"[^>]*>1<\/text>/.exec(svg)![1]);
-    // Further left (more negative) once the bar reserves its own space.
-    expect(rankLabelX(withBar)).toBeLessThan(rankLabelX(withoutBar));
+    expect(rankLabelX(withBar)).toBe(rankLabelX(withoutBar));
   });
 });
 

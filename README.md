@@ -184,7 +184,7 @@ Options:
   --target <seconds>              game60's target duration (default 60 — a target, not a hard cap)
   --max-per-category <n>          auto: cap videos per category (blunder/brilliant/puzzle), default 3
   --show-eval / --no-eval         reveal the evaluation (number + a left-of-board bar) (default hidden)
-  --coordinates / --no-coordinates external file/rank labels outside the board (default hidden)
+  --coordinates / --no-coordinates file/rank labels in the corner of the board's own edge squares (default hidden)
   --sound / --no-sound              synthesized move/capture/check/checkmate/countdown/reveal cues (default on)
   --keep-temp                      keep the temporary frame directory
   --no-cache                        bypass the analysis cache
@@ -301,7 +301,7 @@ Done (this repository, current state):
 - Deterministic SVG board/overlay renderer, lichess's cburnett piece set
 - Stockfish UCI integration, score normalization, disk cache
 - `puzzle`, `blunder`, `brilliant`, `replay`, `game60`, `guess`, and `auto` templates, full CLI + debug CLI
-- External board coordinates (`--coordinates`), off by default
+- Board coordinates (`--coordinates`) drawn inside the board's own edge squares, lichess/chess.com-style, off by default
 - An evaluation bar left of the board, whenever `evaluation` is shown, and player name/rating labels flush to the board's own left edge — one above, one below, whichever side is on top following orientation (`replay`/`game60`)
 - Per-move quality badges (`replay`/`game60`) — blunder/mistake/inaccuracy/great/brilliant marked directly on the destination square, chess.com/lichess-style, plus a "miss" badge when the mover failed to punish an opponent's immediately preceding blunder/mistake hard enough, plus each player's own accuracy % at the outro
 - Playwright capture → FFmpeg encode pipeline
