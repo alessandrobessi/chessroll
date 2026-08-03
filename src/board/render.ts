@@ -117,6 +117,7 @@ function renderSquares(geometry: BoardGeometry): string {
  */
 const MOVE_QUALITY_COLOR: Record<MoveQualityTier, string> = {
   blunder: COLORS.accent,
+  mistake: "#8C4A2F",
   inaccuracy: "#A6763A",
   great: "#3D6B2F",
   brilliant: "#1F6B8B",
@@ -131,6 +132,7 @@ const HIGHLIGHT_COLOR: Record<HighlightElement["style"], string> = {
 /** Bold, saturated badge colors — chess.com/lichess-style pop, deliberately more vivid than the muted square tint above. */
 const BADGE_COLOR: Record<MoveQualityTier, string> = {
   blunder: "#D32F2F",
+  mistake: "#EB5757",
   inaccuracy: "#F2994A",
   great: "#27AE60",
   brilliant: "#17A2B8",

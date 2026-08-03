@@ -25,7 +25,7 @@ export interface EvaluationElement {
 }
 
 /** Chess.com/lichess-style per-move annotation tiers, worst to best. */
-export type MoveQualityTier = "blunder" | "inaccuracy" | "great" | "brilliant";
+export type MoveQualityTier = "blunder" | "mistake" | "inaccuracy" | "great" | "brilliant";
 
 export interface HighlightElement {
   square: Square;
@@ -36,7 +36,7 @@ export interface HighlightElement {
 export interface MoveQualityBadge {
   square: Square;
   tier: MoveQualityTier;
-  /** Pre-formatted annotation glyph: "??" | "?!" | "!" | "!!". */
+  /** Pre-formatted annotation glyph: "??" | "?" | "?!" | "!" | "!!". */
   glyph: string;
 }
 

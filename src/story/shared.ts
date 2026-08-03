@@ -51,6 +51,8 @@ export interface MoveClassification {
 
 /** "Large eval swing" (BLUEPRINT.md §19) — matches brilliant's own advantage threshold. */
 const SWING_THRESHOLD_CP = 150;
+/** Between inaccuracy and blunder — classifyMoveQuality-only, doesn't affect classifyMoveCategory's own pacing bands. */
+const MISTAKE_THRESHOLD_CP = 200;
 /** "Critical move" — matches blunder's own severity threshold. */
 const CRITICAL_THRESHOLD_CP = 300;
 
@@ -108,6 +110,7 @@ export function isSacrifice(ply: Ply): boolean {
 
 const QUALITY_GLYPH: Record<MoveQualityTier, string> = {
   blunder: "??",
+  mistake: "?",
   inaccuracy: "?!",
   great: "!",
   brilliant: "!!",
@@ -118,18 +121,20 @@ export function moveQualityGlyph(tier: MoveQualityTier): string {
 }
 
 /**
- * Chess.com/lichess-style per-move annotation tier, reusing the exact same
- * SWING_THRESHOLD_CP/CRITICAL_THRESHOLD_CP bands as classifyMoveCategory
- * (so every "swing"/"critical"-category move gets a tier, and every
- * quiet/capture/check move never does) and the same isSacrifice heuristic
- * brilliant.ts already uses to distinguish "!!" from "!". A move that
- * delivers checkmate is always "brilliant" regardless of its computed
- * swing — delivering mate can never be a mistake for the mover, the same
- * reasoning classifyMoveCategory already applies for pacing.
+ * Chess.com/lichess-style per-move annotation tier. The bad-move ladder
+ * (inaccuracy < mistake < blunder) subdivides classifyMoveCategory's own
+ * "swing"/"critical" bands via MISTAKE_THRESHOLD_CP so every one of those
+ * categories still gets a tier (and quiet/capture/check never do); the
+ * good-move side reuses the same isSacrifice heuristic brilliant.ts uses
+ * to distinguish "!!" from "!". A move that delivers checkmate is always
+ * "brilliant" regardless of its computed swing — delivering mate can
+ * never be a mistake for the mover, the same reasoning classifyMoveCategory
+ * already applies for pacing.
  */
 export function classifyMoveQuality(ply: Ply, swing: number): MoveQualityTier | undefined {
   if (ply.flags.mate) return "brilliant";
   if (swing <= -CRITICAL_THRESHOLD_CP) return "blunder";
+  if (swing <= -MISTAKE_THRESHOLD_CP) return "mistake";
   if (swing <= -SWING_THRESHOLD_CP) return "inaccuracy";
   if (swing >= SWING_THRESHOLD_CP) return isSacrifice(ply) ? "brilliant" : "great";
   return undefined;

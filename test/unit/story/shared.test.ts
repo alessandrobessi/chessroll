@@ -152,6 +152,7 @@ describe("isSacrifice", () => {
 describe("moveQualityGlyph", () => {
   it("maps each tier to its standard chess annotation glyph", () => {
     expect(moveQualityGlyph("blunder")).toBe("??");
+    expect(moveQualityGlyph("mistake")).toBe("?");
     expect(moveQualityGlyph("inaccuracy")).toBe("?!");
     expect(moveQualityGlyph("great")).toBe("!");
     expect(moveQualityGlyph("brilliant")).toBe("!!");
@@ -170,9 +171,11 @@ describe("classifyMoveQuality", () => {
     expect(classifyMoveQuality(quietPly, -149)).toBeUndefined();
   });
 
-  it("classifies -150..-300 as inaccuracy and <=-300 as blunder", () => {
+  it("classifies -150..-199 as inaccuracy, -200..-299 as mistake, and <=-300 as blunder", () => {
     expect(classifyMoveQuality(quietPly, -150)).toBe("inaccuracy");
-    expect(classifyMoveQuality(quietPly, -299)).toBe("inaccuracy");
+    expect(classifyMoveQuality(quietPly, -199)).toBe("inaccuracy");
+    expect(classifyMoveQuality(quietPly, -200)).toBe("mistake");
+    expect(classifyMoveQuality(quietPly, -299)).toBe("mistake");
     expect(classifyMoveQuality(quietPly, -300)).toBe("blunder");
     expect(classifyMoveQuality(quietPly, -1000)).toBe("blunder");
   });
