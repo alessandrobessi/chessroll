@@ -5,6 +5,7 @@ import { loadPgn } from "../../../src/chess/pgn.js";
 import {
   classifyMoveCategory,
   classifyMoveQuality,
+  detectMiss,
   formatAccuracySummary,
   formatPlayer,
   gameAccuracy,
@@ -156,6 +157,7 @@ describe("moveQualityGlyph", () => {
     expect(moveQualityGlyph("inaccuracy")).toBe("?!");
     expect(moveQualityGlyph("great")).toBe("!");
     expect(moveQualityGlyph("brilliant")).toBe("!!");
+    expect(moveQualityGlyph("miss")).toBe("⨯");
   });
 });
 
@@ -189,6 +191,58 @@ describe("classifyMoveQuality", () => {
     const mateChess = new Chess("6k1/5ppp/8/8/8/8/8/4R2K w - - 0 1");
     const matePly = applyUciMove(mateChess, "e1e8", 0);
     expect(classifyMoveQuality(matePly, -10)).toBe("brilliant");
+  });
+});
+
+describe("detectMiss", () => {
+  // 6 plies: e4(0) e5(1) Nf3(2) Nc6(3) Bc4(4) Bc5(5).
+  const GAME = loadPgn("1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 *");
+  const FENS = [GAME.initialFen, ...GAME.plies.map((p) => p.fenAfter)];
+  const NF3 = GAME.plies[2]!; // white, the "blunder" that gifts black an opportunity
+  const NC6 = GAME.plies[3]!; // black, either takes it or misses it
+
+  function withMultipv(
+    fen: string,
+    whitePerspectiveCp: number,
+    rank1Cp?: number,
+  ): PositionAnalysis {
+    return {
+      fen,
+      engineVersion: "test",
+      depth: 12,
+      bestMove: "",
+      score: { type: "cp", value: whitePerspectiveCp, perspective: "white" },
+      pv: [],
+      multipv:
+        rank1Cp === undefined
+          ? []
+          : [{ rank: 1, score: { type: "cp", value: rank1Cp, perspective: "white" }, moves: [] }],
+    };
+  }
+
+  it("flags a miss: opponent just blundered, and the mover fell well short of the engine's best line", () => {
+    const before = withMultipv(FENS[3]!, -350, -900); // white just blundered to -350; black's best line promises -900 (i.e. +900 for black)
+    const after = withMultipv(FENS[4]!, -400); // black only achieved +400
+    expect(detectMiss(NC6, before, after, NF3, -350)).toBe(true);
+  });
+
+  it("does not flag a miss when the mover's result is close to the engine's best line", () => {
+    const before = withMultipv(FENS[3]!, -350, -900);
+    const after = withMultipv(FENS[4]!, -880); // +880 for black, only a 20cp gap to the +900 best line
+    expect(detectMiss(NC6, before, after, NF3, -350)).toBe(false);
+  });
+
+  it("does not flag a miss when the opponent's previous move wasn't a blunder/mistake", () => {
+    const before = withMultipv(FENS[3]!, -50, -900); // white's previous swing (-50) doesn't even reach inaccuracy
+    const after = withMultipv(FENS[4]!, -100);
+    expect(detectMiss(NC6, before, after, NF3, -50)).toBe(false);
+  });
+
+  it("does not flag a miss with no previous ply (start of game), or with no multipv data to compare against", () => {
+    const before = withMultipv(FENS[3]!, -350, -900);
+    const after = withMultipv(FENS[4]!, -400);
+    expect(detectMiss(NC6, before, after, undefined, undefined)).toBe(false);
+    expect(detectMiss(NC6, withMultipv(FENS[3]!, -350), after, NF3, -350)).toBe(false); // no rank1 line
   });
 });
 

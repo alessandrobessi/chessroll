@@ -24,8 +24,14 @@ export interface EvaluationElement {
   barFraction: number;
 }
 
-/** Chess.com/lichess-style per-move annotation tiers, worst to best. */
-export type MoveQualityTier = "blunder" | "mistake" | "inaccuracy" | "great" | "brilliant";
+/**
+ * Chess.com/lichess-style per-move annotation tiers. "miss" is a
+ * different axis from the rest (it's about failing to punish an
+ * opponent's immediately preceding blunder/mistake hard enough, not
+ * about the mover's own swing) and takes priority over the others when
+ * both would otherwise apply — see classifyMoveQuality()/detectMiss().
+ */
+export type MoveQualityTier = "blunder" | "mistake" | "inaccuracy" | "great" | "brilliant" | "miss";
 
 export interface HighlightElement {
   square: Square;

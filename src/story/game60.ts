@@ -8,6 +8,7 @@ import type { SceneDescriptor, SceneSegment, SceneTimeline } from "../scene/type
 import {
   classifyMoveCategory,
   classifyMoveQuality,
+  detectMiss,
   formatAccuracySummary,
   gameAccuracy,
   headerFor,
@@ -51,12 +52,15 @@ export interface Game60Options {
 interface PlyPlan {
   category: MoveCategory;
   swing: number;
+  missed: boolean;
   moveSeconds: number;
 }
 
 /**
  * BLUEPRINT.md §20's move-time budget: reserve time for intro, one pause
- * per critical move, and the outro; whatever's left is the budget for
+ * per critical move (or per missed opportunity — see detectMiss, which
+ * gets the same dedicated-pause treatment critical moves do, regardless
+ * of its own category), and the outro; whatever's left is the budget for
  * every move's own animation, distributed proportionally to replay's
  * relative category weights and uniformly scaled down to fit.
  *
@@ -77,17 +81,29 @@ function planMoves(
   const classifications = game.plies.map((ply, i) =>
     classifyMoveCategory(ply, analyses[i]!, analyses[i + 1]!),
   );
+  const misses = game.plies.map((ply, i) =>
+    detectMiss(
+      ply,
+      analyses[i]!,
+      analyses[i + 1]!,
+      i > 0 ? game.plies[i - 1] : undefined,
+      i > 0 ? classifications[i - 1]!.swing : undefined,
+    ),
+  );
 
-  const criticalCount = classifications.filter((c) => c.category === "critical").length;
-  const reserved = INTRO_SECONDS + OUTRO_SECONDS + criticalCount * CRITICAL_PAUSE_SECONDS;
+  const pauseCount = classifications.filter(
+    (c, i) => c.category === "critical" || misses[i],
+  ).length;
+  const reserved = INTRO_SECONDS + OUTRO_SECONDS + pauseCount * CRITICAL_PAUSE_SECONDS;
   const baseSum = classifications.reduce((sum, c) => sum + BASE_SECONDS_BY_CATEGORY[c.category], 0);
   const floorSum = MIN_MOVE_SECONDS * classifications.length;
   const moveBudget = Math.max(floorSum, targetSeconds - reserved);
   const scale = baseSum > 0 ? Math.min(1, moveBudget / baseSum) : 1;
 
-  return classifications.map(({ category, swing }) => ({
+  return classifications.map(({ category, swing }, i) => ({
     category,
     swing,
+    missed: misses[i]!,
     moveSeconds: Math.max(MIN_MOVE_SECONDS, BASE_SECONDS_BY_CATEGORY[category] * scale),
   }));
 }
@@ -133,8 +149,8 @@ export function buildGame60Story(
   for (let i = 0; i < game.plies.length; i++) {
     const ply = game.plies[i]!;
     const after = analyses[i + 1]!;
-    const { category, swing, moveSeconds } = plan[i]!;
-    const quality = classifyMoveQuality(ply, swing);
+    const { category, swing, missed, moveSeconds } = plan[i]!;
+    const quality = missed ? "miss" : classifyMoveQuality(ply, swing);
     const label = `${moveNumberLabel(ply)} ${ply.san}`;
     const evaluation: SceneDescriptor["evaluation"] = options.showEval
       ? {
@@ -147,8 +163,9 @@ export function buildGame60Story(
     // A "swing"-category tier (inaccuracy/great) has no pause of its own in
     // game60 (unlike replay) to keep pacing tight — it gets marked inline
     // on its own move segment instead, at no extra time cost. "critical"
-    // tiers (blunder/brilliant) keep their dedicated freeze pause below.
-    const isCriticalPause = category === "critical";
+    // tiers (blunder/brilliant) and a missed opportunity both keep their
+    // own dedicated freeze pause below regardless of category.
+    const isCriticalPause = category === "critical" || missed;
     const inlineQuality = quality && !isCriticalPause ? quality : undefined;
     const inlineGlyph = inlineQuality ? moveQualityGlyph(inlineQuality) : "";
 

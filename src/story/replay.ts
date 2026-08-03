@@ -1,6 +1,6 @@
 import { toMoveAnimation } from "../board/moves.js";
 import { cueForPly, type AudioCue } from "../audio/timeline.js";
-import type { ChessGame, Side } from "../chess/types.js";
+import type { ChessGame, Ply, Side } from "../chess/types.js";
 import type { PositionAnalysis } from "../engine/analysis.js";
 import { evaluationBarFraction, formatEvaluation } from "../engine/normalize.js";
 import { createTimeline, phase } from "../scene/timeline.js";
@@ -8,6 +8,7 @@ import type { SceneDescriptor, SceneSegment, SceneTimeline } from "../scene/type
 import {
   classifyMoveCategory,
   classifyMoveQuality,
+  detectMiss,
   formatAccuracySummary,
   gameAccuracy,
   headerFor,
@@ -86,13 +87,21 @@ export function buildReplayStory(
     subtitle: headerText,
   });
 
+  let previousPly: Ply | undefined;
+  let previousSwing: number | undefined;
+
   for (let i = 0; i < game.plies.length; i++) {
     const ply = game.plies[i]!;
     const before = analyses[i]!;
     const after = analyses[i + 1]!;
     const { category, swing } = classifyMoveCategory(ply, before, after);
+    const missed = detectMiss(ply, before, after, previousPly, previousSwing);
     const moveSeconds = MOVE_SECONDS_BY_CATEGORY[category];
-    const pauseSeconds = PAUSE_SECONDS_BY_CATEGORY[category];
+    // A miss deserves its own pause even on an otherwise-quiet move — it's
+    // the biggest story on the board regardless of the mover's own swing.
+    const pauseSeconds = missed
+      ? Math.max(PAUSE_SECONDS_BY_CATEGORY[category], CRITICAL_PAUSE_SECONDS)
+      : PAUSE_SECONDS_BY_CATEGORY[category];
     const label = `${moveNumberLabel(ply)} ${ply.san}`;
     const evaluation: SceneDescriptor["evaluation"] = options.showEval
       ? {
@@ -115,7 +124,7 @@ export function buildReplayStory(
     cues.push({ time: t, type: cueForPly(ply) });
 
     if (pauseSeconds > 0) {
-      const quality = classifyMoveQuality(ply, swing);
+      const quality = missed ? "miss" : classifyMoveQuality(ply, swing);
       const glyph = quality ? moveQualityGlyph(quality) : "";
       push(pauseSeconds, {
         position: { fen: ply.fenAfter, orientation },
@@ -132,6 +141,9 @@ export function buildReplayStory(
         moveQualityBadge: quality ? { square: ply.to, tier: quality, glyph } : undefined,
       });
     }
+
+    previousPly = ply;
+    previousSwing = swing;
   }
 
   // OUTRO — final position holds; the result only if the PGN actually

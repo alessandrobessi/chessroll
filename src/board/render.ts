@@ -121,6 +121,7 @@ const MOVE_QUALITY_COLOR: Record<MoveQualityTier, string> = {
   inaccuracy: "#A6763A",
   great: "#3D6B2F",
   brilliant: "#1F6B8B",
+  miss: "#5C5470",
 };
 
 const HIGHLIGHT_COLOR: Record<HighlightElement["style"], string> = {
@@ -136,6 +137,7 @@ const BADGE_COLOR: Record<MoveQualityTier, string> = {
   inaccuracy: "#F2994A",
   great: "#27AE60",
   brilliant: "#17A2B8",
+  miss: "#8E44AD",
 };
 
 function renderHighlights(
@@ -169,8 +171,9 @@ function renderMoveQualityBadge(
   const cy = rect.y + radius * 0.9;
   const fill = BADGE_COLOR[badge.tier];
   const fontSize = radius * 1.05;
+  const strokeWidth = radius * 0.18;
   return (
-    `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${fill}" stroke="${COLORS.background}" stroke-width="2" />` +
+    `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${fill}" stroke="${COLORS.background}" stroke-width="${strokeWidth}" />` +
     `<text x="${cx}" y="${cy}" font-family="${BADGE_FONT_FAMILY}" font-size="${fontSize}" ` +
     `font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">${badge.glyph}</text>`
   );

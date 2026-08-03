@@ -278,7 +278,7 @@ describe("renderBoardSvg", () => {
 
   it("colors the badge differently per quality tier", () => {
     const colorFor = (
-      tier: "blunder" | "mistake" | "inaccuracy" | "great" | "brilliant",
+      tier: "blunder" | "mistake" | "inaccuracy" | "great" | "brilliant" | "miss",
     ): string => {
       const svg = renderBoardSvg(
         { ...baseDescriptor(START_FEN), moveQualityBadge: { square: "e4", tier, glyph: "x" } },
@@ -287,11 +287,11 @@ describe("renderBoardSvg", () => {
       return /<circle[^>]*fill="(#[0-9A-Fa-f]{6})"[^>]*stroke="#F6F3EC"/.exec(svg)![1]!;
     };
     const colors = new Set(
-      (["blunder", "mistake", "inaccuracy", "great", "brilliant"] as const).map((tier) =>
+      (["blunder", "mistake", "inaccuracy", "great", "brilliant", "miss"] as const).map((tier) =>
         colorFor(tier),
       ),
     );
-    expect(colors.size).toBe(5); // all five tiers get a visually distinct color
+    expect(colors.size).toBe(6); // all six tiers get a visually distinct color
   });
 
   it("shifts rank coordinate labels further left to avoid the evaluation bar when both are shown", () => {

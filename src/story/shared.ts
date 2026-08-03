@@ -55,6 +55,8 @@ const SWING_THRESHOLD_CP = 150;
 const MISTAKE_THRESHOLD_CP = 200;
 /** "Critical move" — matches blunder's own severity threshold. */
 const CRITICAL_THRESHOLD_CP = 300;
+/** How far short of the engine's own best line counts as failing to punish a gifted opportunity (see detectMiss). */
+const MISS_THRESHOLD_CP = 200;
 
 /**
  * BLUEPRINT.md §14/§19's importance ladder: quiet < capture < check < large
@@ -114,6 +116,7 @@ const QUALITY_GLYPH: Record<MoveQualityTier, string> = {
   inaccuracy: "?!",
   great: "!",
   brilliant: "!!",
+  miss: "⨯",
 };
 
 export function moveQualityGlyph(tier: MoveQualityTier): string {
@@ -138,6 +141,37 @@ export function classifyMoveQuality(ply: Ply, swing: number): MoveQualityTier | 
   if (swing <= -SWING_THRESHOLD_CP) return "inaccuracy";
   if (swing >= SWING_THRESHOLD_CP) return isSacrifice(ply) ? "brilliant" : "great";
   return undefined;
+}
+
+/**
+ * A different axis from classifyMoveQuality above: not "how good was this
+ * move on its own," but "the opponent just handed you a golden
+ * opportunity (their previous move was a blunder/mistake) — did you take
+ * it?" `before`/`after` are the analyses straddling `ply` (before is the
+ * same position `previousPly`'s own "after" analysis would be); `rank1`
+ * is the engine's own best line at `before`, for `ply`'s own mover. A
+ * move that falls MISS_THRESHOLD_CP short of that best line, right after
+ * the opponent's own mistake, is a miss — takes priority over
+ * classifyMoveQuality's own tier when both apply (see callers).
+ */
+export function detectMiss(
+  ply: Ply,
+  before: PositionAnalysis,
+  after: PositionAnalysis,
+  previousPly: Ply | undefined,
+  previousSwing: number | undefined,
+): boolean {
+  if (!previousPly || previousSwing === undefined) return false;
+  const previousQuality = classifyMoveQuality(previousPly, previousSwing);
+  if (previousQuality !== "blunder" && previousQuality !== "mistake") return false;
+
+  const mover = ply.side;
+  const rank1 = before.multipv.find((line) => line.rank === 1);
+  if (!rank1) return false;
+
+  const rank1Value = moverComparableValue(rank1.score, mover);
+  const actualValue = moverComparableValue(after.score, mover);
+  return rank1Value - actualValue >= MISS_THRESHOLD_CP;
 }
 
 /**

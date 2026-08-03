@@ -303,7 +303,7 @@ Done (this repository, current state):
 - `puzzle`, `blunder`, `brilliant`, `replay`, `game60`, `guess`, and `auto` templates, full CLI + debug CLI
 - External board coordinates (`--coordinates`), off by default
 - An evaluation bar left of the board and player name/rating headers (`replay`/`game60`), whenever `evaluation` is shown
-- Per-move quality badges (`replay`/`game60`) — blunder/mistake/inaccuracy/great/brilliant marked directly on the destination square, chess.com/lichess-style, plus each player's own accuracy % at the outro
+- Per-move quality badges (`replay`/`game60`) — blunder/mistake/inaccuracy/great/brilliant marked directly on the destination square, chess.com/lichess-style, plus a "miss" badge when the mover failed to punish an opponent's immediately preceding blunder/mistake hard enough, plus each player's own accuracy % at the outro
 - Playwright capture → FFmpeg encode pipeline
 - Synthesized sound design (`src/audio/`) — move/capture/check/checkmate/countdown-tick/reveal cues, muxed in as AAC, on by default (`--no-sound` to mute)
 - Canonical demo assets for all six working templates (`demo/puzzle/`, `demo/blunder/`, `demo/brilliant/`, `demo/replay/`, `demo/game60/`, `demo/guess/`)
